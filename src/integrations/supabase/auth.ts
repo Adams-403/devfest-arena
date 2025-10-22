@@ -177,11 +177,23 @@ export const authService = {
     return session;
   },
 
-  async updateScore(userId: string, score: number): Promise<LeaderboardUser | null> {
+  async updateScore(userId: string, scoreToAdd: number): Promise<LeaderboardUser | null> {
+    // First get the current score
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('score')
+      .eq('id', userId)
+      .single();
+
+    if (!currentUser) throw new Error('User not found');
+
+    const newScore = (currentUser.score || 0) + scoreToAdd;
+    
+    // Update with the new incremented score
     const { data, error } = await supabase
       .from('users')
       .update({
-        score,
+        score: newScore,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
