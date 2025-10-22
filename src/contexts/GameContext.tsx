@@ -113,7 +113,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: userData.username,
           username: userData.username,
           score: userData.score || 0,
-          isAdmin: false, // You can implement admin check if needed
+          isAdmin: userData.is_admin || false,
           joinedAt: new Date(userData.created_at).getTime(),
           created_at: userData.created_at,
           updated_at: userData.updated_at,
@@ -121,6 +121,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           code: userData.access_code,
           access_code: userData.access_code
         };
+        
+        // Set admin state
+        setIsAdmin(player.isAdmin);
         
         // Store user in state and localStorage
         setCurrentPlayer(player);
@@ -278,13 +281,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: userData.username,
           username: userData.username,
           score: userData.score || 0,
-          isAdmin: false,
+          isAdmin: userData.is_admin || false,
           joinedAt: new Date(userData.created_at).getTime(),
           created_at: userData.created_at,
           updated_at: userData.updated_at,
           code: userData.access_code,
           access_code: userData.access_code
         };
+        
+        // Set admin state
+        setIsAdmin(player.isAdmin);
         
         // Store user in state and localStorage
         setCurrentPlayer(player);

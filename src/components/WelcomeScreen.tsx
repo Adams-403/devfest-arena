@@ -43,10 +43,6 @@ export const WelcomeScreen = () => {
     }
   };
 
-  const handleAdminAccess = () => {
-    setIsAdmin(true);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-card/80 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -142,21 +138,12 @@ export const WelcomeScreen = () => {
               </Button>
             </form>
             
-            <div className="pt-4 border-t">
-              <Button
-                onClick={handleAdminAccess}
-                variant="outline"
-                className="w-full"
-              >
-                Admin Access
-              </Button>
-            </div>
           </CardContent>
-          <CardFooter className="flex justify-center pt-0">
+          <CardFooter className="pt-0">
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground w-full"
               type="button"
               onClick={() => {
                 setIsSignup(!isSignup);

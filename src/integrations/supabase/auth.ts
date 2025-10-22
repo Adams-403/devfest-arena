@@ -9,6 +9,7 @@ type LoginResponse = {
       username: string;
       access_code: string;
       score: number;
+      is_admin: boolean;
       created_at: string;
       updated_at: string;
     };
@@ -60,9 +61,12 @@ export const authService = {
       }
       
       // If we get here, we have a valid user
-      const user = users;
+      const user = {
+        ...users,
+        is_admin: users.is_admin || false // Ensure is_admin is always a boolean
+      };
 
-      console.log('Login successful for user:', user.username);
+      console.log('Login successful for user:', user.username, 'Admin:', user.is_admin);
       return {
         success: true,
         message: 'Login successful',
@@ -139,6 +143,7 @@ export const authService = {
             username: newUser.username,
             access_code: newUser.access_code,
             score: newUser.score,
+            is_admin: newUser.is_admin || false,
             created_at: newUser.created_at,
             updated_at: newUser.updated_at,
           },
