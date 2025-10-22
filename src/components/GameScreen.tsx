@@ -9,6 +9,12 @@ import { Button } from './ui/button';
 import { Share2, LogOut, Crown, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export const GameScreen = () => {
   const { gameState, currentPlayer, isAdmin, setIsAdmin } = useGame();
@@ -113,24 +119,49 @@ export const GameScreen = () => {
             </div>
             <div className="flex gap-2">
               {isAdmin && (
-                <Button 
-                  onClick={() => setIsAdminView(!isAdminView)} 
-                  variant="outline" 
-                  size="sm"
-                  className="gap-2"
-                >
-                  {isAdminView ? (
-                    <>
-                      <User className="h-4 w-4" />
-                      Player View
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="h-4 w-4" />
-                      Admin Dashboard
-                    </>
-                  )}
-                </Button>
+                <div className="relative group">
+                  <Button 
+                    onClick={() => setIsAdminView(!isAdminView)} 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2 hidden sm:flex"
+                    aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
+                  >
+                    {isAdminView ? (
+                      <>
+                        <User className="h-4 w-4" />
+                        Player View
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="h-4 w-4" />
+                        Admin Dashboard
+                      </>
+                    )}
+                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={() => setIsAdminView(!isAdminView)} 
+                          variant="outline" 
+                          size="icon"
+                          className="h-9 w-9 sm:hidden"
+                          aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
+                        >
+                          {isAdminView ? (
+                            <User className="h-4 w-4" />
+                          ) : (
+                            <Crown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>{isAdminView ? 'Player View' : 'Admin Dashboard'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
               
               {!isAdminView && (
