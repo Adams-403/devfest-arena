@@ -229,11 +229,29 @@ export const authService = {
   async logout(): Promise<{ error?: Error }> {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      return {};
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      return { error };
+      return { error: error || undefined };
+    } catch (error) {
+      console.error('Logout error:', error);
+      return { error: error as Error };
+    }
+  },
+  
+  getAllUsers: async (): Promise<LeaderboardUser[]> => {
+    try {
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('score', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw error;
+      }
+
+      return users || [];
+    } catch (error) {
+      console.error('Error in getAllUsers:', error);
+      throw error;
     }
   },
 };

@@ -4,9 +4,21 @@ import { authService } from '@/integrations/supabase/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 
+interface User {
+  id: string;
+  username: string;
+  score: number;
+  is_admin?: boolean;
+  access_code?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface GameContextType {
   gameState: GameState;
   currentPlayer: Player | null;
+  allUsers: User[];
+  fetchAllUsers: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, accessCode: string) => Promise<{ success: boolean }>;
@@ -69,6 +81,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }));
 
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState<Array<{ id: string; username: string; score: number }>>([]);
@@ -76,6 +89,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const fetchAllUsers = async () => {
+    try {
+      const users = await authService.getAllUsers();
+      setAllUsers(users);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch users',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Check admin status from the server
   const checkAdminStatus = async (username: string): Promise<boolean> => {
@@ -390,6 +417,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         gameState,
         currentPlayer: currentPlayer as Player,
+        allUsers,
+        fetchAllUsers,
         isAuthenticated,
         isLoading,
         login,
@@ -409,7 +438,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </GameContext.Provider>
   );
-};
+}
 
 export const useGame = () => {
   const context = useContext(GameContext);
