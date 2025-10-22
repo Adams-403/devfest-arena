@@ -75,6 +75,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Check admin status from the server
+  const checkAdminStatus = async (username: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('is_admin')
+        .eq('username', username)
+        .single();
+      
+      if (error) throw error;
+      return data?.is_admin || false;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
   // Check for existing user in localStorage on initial load
   useEffect(() => {
     const checkStoredUser = async () => {
@@ -83,14 +100,45 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
           const user = JSON.parse(storedUser);
-          setCurrentPlayer(user);
+          
+          // First check the separate isAdmin flag for faster initial load
+          const cachedIsAdmin = localStorage.getItem('isAdmin') === 'true';
+          
+          // Set initial state from localStorage for immediate UI update
+          setCurrentPlayer({
+            ...user,
+            isAdmin: cachedIsAdmin
+          });
           setIsAuthenticated(true);
+          setIsAdmin(cachedIsAdmin);
+          
+          // Then verify admin status from the server in the background
+          const isUserAdmin = await checkAdminStatus(user.username);
+          
+          // Only update if the server response differs from our cached value
+          if (isUserAdmin !== cachedIsAdmin) {
+            const updatedUser = {
+              ...user,
+              isAdmin: isUserAdmin
+            };
+            
+            setCurrentPlayer(updatedUser);
+            setIsAdmin(isUserAdmin);
+            
+            // Update localStorage with the latest data
+            localStorage.setItem('isAdmin', String(isUserAdmin));
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          }
+          
           await fetchLeaderboard();
         }
       } catch (error) {
         console.error('Error checking stored user:', error);
         // Clear invalid stored user
         localStorage.removeItem('currentUser');
+        setIsAuthenticated(false);
+        setCurrentPlayer(null);
+        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
@@ -108,12 +156,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (response.success && response.data?.user) {
         const userData = response.data.user;
+        
+        // Double-check admin status from the server
+        const isUserAdmin = await checkAdminStatus(username);
+        
         const player: Player = {
           id: userData.id,
           name: userData.username,
           username: userData.username,
           score: userData.score || 0,
-          isAdmin: userData.is_admin || false,
+          isAdmin: isUserAdmin, // Use the verified admin status
           joinedAt: new Date(userData.created_at).getTime(),
           created_at: userData.created_at,
           updated_at: userData.updated_at,
@@ -123,11 +175,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         // Set admin state
-        setIsAdmin(player.isAdmin);
+        setIsAdmin(isUserAdmin);
         
         // Store user in state and localStorage
         setCurrentPlayer(player);
         setIsAuthenticated(true);
+        
+        // Also store the admin status in a separate localStorage key for quick access
+        localStorage.setItem('isAdmin', String(isUserAdmin));
         localStorage.setItem('currentUser', JSON.stringify(player));
         
         // Refresh leaderboard
@@ -162,29 +217,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      // Sign out from Supabase
-      const { error } = await authService.logout();
-      
-      if (error) throw error;
-      
-      // Clear user data from state and localStorage
-      setCurrentPlayer(null);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      setAuthError(null);
-      localStorage.removeItem('currentUser');
-      
+      await authService.logout();
+      // Show success message
       toast({
         title: 'Logged out',
         description: 'You have been successfully logged out.',
       });
-    } catch (error: any) {
-      console.error('Error logging out:', error);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Show error message
       toast({
         title: 'Logout Failed',
-        description: error.message || 'An error occurred while logging out.',
+        description: error instanceof Error ? error.message : 'An error occurred while logging out.',
         variant: 'destructive',
       });
+    } finally {
+      // Clear all state and storage
+      setCurrentPlayer(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      setAuthError(null);
+      
+      // Clear all auth-related data from localStorage
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('adminView');
     }
   };
 
