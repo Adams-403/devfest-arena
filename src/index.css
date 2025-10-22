@@ -108,3 +108,19 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Subtle GDG-themed background pattern using CSS gradients and HSL variables */
+  .bg-gdg-pattern {
+    /* Plain black background (pattern removed as requested) */
+    background-color: hsl(0 0% 0%);
+    background-image: none;
+  }
+
+  /* Slight glass card highlight for desktop */
+  .gdg-card-highlight {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: calc(var(--radius));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+}

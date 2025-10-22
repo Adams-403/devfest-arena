@@ -44,22 +44,30 @@ export const WelcomeScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-card/80 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="text-center space-y-2">
-          <div className="flex justify-center mb-6">
-            <div className="bg-primary/10 p-4 rounded-full">
-              <Rocket className="h-16 w-16 text-primary" />
+    <div className="min-h-screen lg:h-screen bg-gdg-pattern bg-gradient-to-br from-background to-card/80 flex items-center justify-center p-6 lg:py-0 overflow-auto lg:overflow-hidden">
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Left: big visual / branding */}
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-3 lg:gap-6 px-4">
+          <div className="relative">
+            <div className="inline-flex items-center justify-center rounded-full p-3 bg-[rgba(255,255,255,0.03)] ring-2 ring-offset-2 ring-[hsla(var(--primary)/0.18)]">
+              <img
+                src="/assets/0216-GfD-DevFest-Toolkit-Stickers-06.png"
+                alt="DevFest Logo"
+                className="h-40 md:h-56 lg:h-72 xl:h-80 w-auto object-contain block drop-shadow-lg"
+                style={{ margin: 0 }}
+              />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            DevFest Arena
-          </h1>
-          <p className="text-lg text-muted-foreground font-medium">Gombe 2025</p>
+
+          <h1 className="text-lg md:text-2xl lg:text-3xl font-semibold text-muted-foreground">Gombe 2025</h1>
+          <p className="max-w-md text-sm md:text-base text-muted-foreground/80">Join the GDG-powered DevFest arena — friendly competition, real-time leaderboards, and lots of stickers. Ready to play?</p>
         </div>
 
-        <Card className="border border-border/50 shadow-lg">
-          <CardHeader className="space-y-1">
+        {/* Right: auth card + stats */}
+        <div className="flex flex-col items-center px-4">
+          <div className="w-full max-w-md">
+            <Card className="bg-black/95 border-2 border-[hsl(var(--primary))] shadow-lg gdg-card-highlight">
+              <CardHeader className="space-y-1">
             <CardTitle className="text-2xl flex items-center gap-2">
               <Trophy className="h-6 w-6 text-primary" />
               {isAdmin ? 'Admin Mode' : 'Join the Challenge'}
@@ -69,8 +77,8 @@ export const WelcomeScreen = () => {
                 ? 'You are in admin mode. Close this tab to exit.'
                 : 'Enter your name and 4-digit access code to join'}
             </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-md">
                 <AlertCircle className="h-4 w-4" />
@@ -84,13 +92,13 @@ export const WelcomeScreen = () => {
                 </label>
                 <Input
                   id="name"
-                  placeholder="John Doe"
+                  placeholder="username here"
                   value={name}
                   onChange={(e) => {
                     setError('');
                     setName(e.target.value);
                   }}
-                  className="h-12"
+                  className="h-8 text-sm bg-transparent text-white placeholder:text-white/60"
                   disabled={isLoading}
                 />
               </div>
@@ -106,7 +114,7 @@ export const WelcomeScreen = () => {
                   type="password"
                   inputMode="numeric"
                   pattern="\d{4}"
-                  placeholder="1234"
+                  placeholder="password here"
                   value={code}
                   onChange={(e) => {
                     // Only allow numbers and limit to 4 digits
@@ -114,7 +122,7 @@ export const WelcomeScreen = () => {
                     setCode(value);
                     setError('');
                   }}
-                  className="h-12 text-center text-xl font-mono tracking-widest"
+                  className="h-8 text-sm text-center font-mono tracking-widest bg-transparent text-white placeholder:text-white/60"
                   maxLength={4}
                   disabled={isLoading}
                 />
@@ -155,9 +163,9 @@ export const WelcomeScreen = () => {
                 : 'Need an account? Sign up'}
             </Button>
           </CardFooter>
-        </Card>
+    </Card>
 
-        <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-3 gap-4 text-center mt-4">
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
             <p className="text-2xl font-bold text-white">4</p>
             <p className="text-sm text-white/80">Challenges</p>
@@ -169,6 +177,8 @@ export const WelcomeScreen = () => {
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
             <p className="text-2xl font-bold text-white">∞</p>
             <p className="text-sm text-white/80">Fun</p>
+          </div>
+            </div>
           </div>
         </div>
       </div>
