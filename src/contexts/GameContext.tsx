@@ -380,6 +380,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...prev,
         leaderboard: formattedLeaderboard
       }));
+      
+      // Update currentPlayer's score if they are in the leaderboard
+      if (currentPlayer) {
+        const currentPlayerInLeaderboard = formattedLeaderboard.find(
+          (player: any) => player.id === currentPlayer.id
+        );
+        
+        if (currentPlayerInLeaderboard && currentPlayerInLeaderboard.score !== currentPlayer.score) {
+          setCurrentPlayer(prev => prev ? { 
+            ...prev, 
+            score: currentPlayerInLeaderboard.score,
+            updated_at: currentPlayerInLeaderboard.updated_at
+          } : null);
+        }
+      }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
     }
