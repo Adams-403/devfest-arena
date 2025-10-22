@@ -1,3 +1,7 @@
+// This file contains TypeScript types for the Supabase database
+
+import { Database as GeneratedDatabase } from './__generated__/database.types';
+
 export type Json =
   | string
   | number
@@ -6,7 +10,8 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+// Extend the generated database types with our custom types
+export type Database = GeneratedDatabase & {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
@@ -14,7 +19,31 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      users: {
+        Row: {
+          id: string;
+          username: string;
+          access_code: string;
+          score: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          username: string;
+          access_code: string;
+          score?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          username?: string;
+          access_code?: string;
+          score?: number;
+          updated_at?: string;
+        };
+      };
     }
     Views: {
       [_ in never]: never

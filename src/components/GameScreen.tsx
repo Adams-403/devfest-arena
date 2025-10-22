@@ -55,18 +55,20 @@ export const GameScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-card/50">
+      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                {isAdmin && <Crown className="h-6 w-6 text-accent" />}
-                DevFest Arena
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  DevFest Arena
+                </h1>
+                {isAdmin && <Crown className="h-5 w-5 text-accent" />}
+              </div>
               {currentPlayer && (
                 <p className="text-sm text-muted-foreground">
-                  Welcome, {currentPlayer.name}! Score: {currentPlayer.score}
+                  Welcome, <span className="font-medium text-foreground">{currentPlayer.name}</span> • Score: <span className="font-bold text-primary">{currentPlayer.score}</span>
                 </p>
               )}
             </div>

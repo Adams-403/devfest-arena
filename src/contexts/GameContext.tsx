@@ -1,15 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Player, Challenge, GameState } from '@/types/game';
+import { authService } from '@/integrations/supabase/auth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '../hooks/use-toast';
 
 interface GameContextType {
   gameState: GameState;
   currentPlayer: Player | null;
-  joinGame: (name: string, code: string) => void;
-  startChallenge: (challengeId: string) => void;
-  endChallenge: () => void;
-  updateScore: (playerId: string, points: number) => void;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, accessCode: string) => Promise<{ success: boolean }>;
+  signUp: (username: string, accessCode: string) => Promise<{ success: boolean }>;
+  logout: () => Promise<void>;
+  updateScore: (score: number) => Promise<void>;
+  leaderboard: Array<{ id: string; username: string; score: number }>;
+  refreshLeaderboard: () => Promise<void>;
   isAdmin: boolean;
   setIsAdmin: (value: boolean) => void;
+  authError: string | null;
+  loading: boolean;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -50,55 +59,125 @@ const INITIAL_CHALLENGES: Challenge[] = [
 ];
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gameState, setGameState] = useState<GameState>(() => {
-    const saved = localStorage.getItem('devfest-game-state');
-    return saved ? JSON.parse(saved) : {
-      players: [],
-      currentChallenge: null,
-      challenges: INITIAL_CHALLENGES,
-      leaderboard: []
+  const [gameState, setGameState] = useState<GameState>(() => ({
+    players: [],
+    currentChallenge: null,
+    challenges: INITIAL_CHALLENGES,
+    leaderboard: []
+  }));
+
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [leaderboard, setLeaderboard] = useState<Array<{ id: string; username: string; score: number }>>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Check for existing user in localStorage on initial load
+  useEffect(() => {
+    const checkStoredUser = async () => {
+      try {
+        setLoading(true);
+        const storedUser = localStorage.getItem('currentUser');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setCurrentPlayer(user);
+          setIsAuthenticated(true);
+          await fetchLeaderboard();
+        }
+      } catch (error) {
+        console.error('Error checking stored user:', error);
+        // Clear invalid stored user
+        localStorage.removeItem('currentUser');
+      } finally {
+        setLoading(false);
+      }
     };
-  });
 
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(() => {
-    const saved = localStorage.getItem('devfest-current-player');
-    return saved ? JSON.parse(saved) : null;
-  });
+    checkStoredUser();
+  }, []);
 
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('devfest-is-admin') === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('devfest-game-state', JSON.stringify(gameState));
-  }, [gameState]);
-
-  useEffect(() => {
-    if (currentPlayer) {
-      localStorage.setItem('devfest-current-player', JSON.stringify(currentPlayer));
+  const login = async (username: string, accessCode: string) => {
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await authService.login(username, accessCode);
+      
+      if (response.success && response.data?.user) {
+        const userData = response.data.user;
+        const player: Player = {
+          id: userData.id,
+          name: userData.username,
+          username: userData.username,
+          score: userData.score || 0,
+          isAdmin: false, // You can implement admin check if needed
+          joinedAt: new Date(userData.created_at).getTime(),
+          created_at: userData.created_at,
+          updated_at: userData.updated_at,
+          // Legacy fields
+          code: userData.access_code,
+          access_code: userData.access_code
+        };
+        
+        // Store user in state and localStorage
+        setCurrentPlayer(player);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(player));
+        
+        // Refresh leaderboard
+        await fetchLeaderboard();
+        
+        // Show success message
+        toast({
+          title: 'Welcome!',
+          description: `Welcome to DevFest Arena, ${player.name}!`,
+        });
+        
+        return { success: true };
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error.message || 'An error occurred during login';
+      setAuthError(errorMessage);
+      
+      toast({
+        title: 'Login Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  }, [currentPlayer]);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('devfest-is-admin', isAdmin.toString());
-  }, [isAdmin]);
-
-  const joinGame = (name: string, code: string) => {
-    const newPlayer: Player = {
-      id: Date.now().toString(),
-      name,
-      code,
-      score: 0,
-      joinedAt: Date.now()
-    };
-
-    setGameState(prev => ({
-      ...prev,
-      players: [...prev.players, newPlayer],
-      leaderboard: [...prev.players, newPlayer].sort((a, b) => b.score - a.score)
-    }));
-
-    setCurrentPlayer(newPlayer);
+  const logout = async () => {
+    try {
+      // Clear user data from state and localStorage
+      setCurrentPlayer(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      setAuthError(null);
+      localStorage.removeItem('currentUser');
+      
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const startChallenge = (challengeId: string) => {
@@ -128,23 +207,111 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  const updateScore = (playerId: string, points: number) => {
-    setGameState(prev => {
-      const updatedPlayers = prev.players.map(p => 
-        p.id === playerId ? { ...p, score: p.score + points } : p
-      );
+  const updateScore = async (score: number) => {
+    if (!currentPlayer) return;
+    
+    try {
+      const updatedUser = await authService.updateScore(currentPlayer.id, score);
+      
+      if (updatedUser) {
+        setCurrentPlayer(prev => prev ? { 
+          ...prev, 
+          score: updatedUser.score,
+          updated_at: updatedUser.updated_at
+        } : null);
+        
+        await fetchLeaderboard();
+      }
+    } catch (error) {
+      console.error('Error updating score:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update score',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
 
-      const updatedLeaderboard = [...updatedPlayers].sort((a, b) => b.score - a.score);
+  const fetchLeaderboard = async () => {
+    try {
+      const leaderboardData = await authService.getLeaderboard();
+      
+      setLeaderboard(leaderboardData.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        score: user.score
+      })));
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
+  };
 
-      return {
-        ...prev,
-        players: updatedPlayers,
-        leaderboard: updatedLeaderboard
-      };
-    });
+  const refreshLeaderboard = useCallback(async () => {
+    await fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
-    if (currentPlayer?.id === playerId) {
-      setCurrentPlayer(prev => prev ? { ...prev, score: prev.score + points } : null);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const signUp = async (username: string, accessCode: string) => {
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await authService.signUp(username, accessCode);
+      
+      if (response.success && response.data?.user) {
+        const userData = response.data.user;
+        const player: Player = {
+          id: userData.id,
+          name: userData.username,
+          username: userData.username,
+          score: userData.score || 0,
+          isAdmin: false,
+          joinedAt: new Date(userData.created_at).getTime(),
+          created_at: userData.created_at,
+          updated_at: userData.updated_at,
+          code: userData.access_code,
+          access_code: userData.access_code
+        };
+        
+        // Store user in state and localStorage
+        setCurrentPlayer(player);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(player));
+        
+        // Refresh leaderboard
+        await fetchLeaderboard();
+        
+        toast({
+          title: 'Welcome!',
+          description: `Welcome to DevFest Arena, ${player.name}!`,
+        });
+        
+        return { success: true };
+      } else {
+        throw new Error(response.message || 'Signup failed');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      const errorMessage = error.message || 'An error occurred during signup';
+      setAuthError(errorMessage);
+      
+      toast({
+        title: 'Signup Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -152,12 +319,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider value={{
       gameState,
       currentPlayer,
-      joinGame,
-      startChallenge,
-      endChallenge,
+      isAuthenticated,
+      isLoading,
+      login,
+      signUp,
+      logout,
       updateScore,
+      leaderboard,
+      refreshLeaderboard,
       isAdmin,
-      setIsAdmin
+      setIsAdmin,
+      authError,
+      loading
     }}>
       {children}
     </GameContext.Provider>

@@ -1,9 +1,15 @@
 export interface Player {
   id: string;
   name: string;
-  code: string;
+  username: string;
   score: number;
+  isAdmin?: boolean; // Made optional to match existing code
   joinedAt: number;
+  created_at?: string;
+  updated_at?: string;
+  // Legacy fields for backward compatibility
+  code?: string;
+  access_code?: string;
 }
 
 export interface Challenge {
