@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Player, Challenge, GameState } from '@/types/game';
 import { authService } from '@/integrations/supabase/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { gameStateService } from '@/integrations/supabase/gameState';
 import { useToast } from '../hooks/use-toast';
 
 interface User {
@@ -77,14 +78,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     players: [],
     currentChallenge: null,
     challenges: INITIAL_CHALLENGES,
-    leaderboard: []
+    leaderboard: [],
+    gameStarted: false,
+    gameStartTime: undefined
   }));
 
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [leaderboard, setLeaderboard] = useState<Array<{ id: string; username: string; score: number }>>([]);
+  const [leaderboard, setLeaderboard] = useState<Array<{ id: string; username: string; score: number; name: string; isAdmin: boolean; joinedAt: number; created_at: string; updated_at: string; code: string; access_code: string }>>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,33 +124,111 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Set up real-time subscription for leaderboard updates
+  // Set up real-time subscriptions
   useEffect(() => {
-    // Initial fetch of all users
-    fetchAllUsers();
-    
-    // Set up real-time subscription for users table
-    const usersSubscription = supabase
-      .channel('users_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'users' 
-        }, 
-        (payload) => {
-          console.log('Users table changed:', payload);
-          fetchLeaderboard();
-          fetchAllUsers();
-        }
-      )
-      .subscribe();
+    let isMounted = true;
+    let usersSubscription: any = null;
+    let gameStateUnsubscribe: (() => void) | null = null;
 
-    // Cleanup subscription on unmount
+    const setupSubscriptions = async () => {
+      try {
+        // Initial fetches
+        await Promise.all([
+          fetchAllUsers(),
+          fetchLeaderboard(),
+          fetchGameState()
+        ]);
+
+        if (!isMounted) return;
+        
+        // Set up real-time subscription for users table
+        usersSubscription = supabase
+          .channel('users_changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'users' 
+            }, 
+            (payload) => {
+              console.log('Users table changed:', payload);
+              fetchLeaderboard();
+              fetchAllUsers();
+            }
+          )
+          .subscribe((status) => {
+            console.log('Users subscription status:', status);
+          });
+
+        // Set up real-time subscription for game state
+        gameStateUnsubscribe = gameStateService.subscribeToGameState((payload) => {
+          console.log('Game state changed:', payload);
+          if (payload.new) {
+            setGameState(prev => ({
+              ...prev,
+              gameStarted: payload.new.is_active,
+              gameStartTime: payload.new.start_time ? new Date(payload.new.start_time).getTime() : undefined,
+              currentChallenge: payload.new.current_challenge_id 
+                ? prev.challenges.find(c => c.id === payload.new.current_challenge_id) || null
+                : null
+            }));
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up subscriptions:', error);
+      }
+    };
+
+    setupSubscriptions();
+
+    // Cleanup subscriptions on unmount
     return () => {
-      supabase.removeChannel(usersSubscription);
+      isMounted = false;
+      if (usersSubscription) {
+        supabase.removeChannel(usersSubscription);
+      }
+      if (typeof gameStateUnsubscribe === 'function') {
+        gameStateUnsubscribe();
+      }
     };
   }, []);
+  
+  // Update gameState.leaderboard whenever the leaderboard state changes
+  useEffect(() => {
+    setGameState(prev => ({
+      ...prev,
+      leaderboard: leaderboard.map(user => ({
+        id: user.id,
+        name: user.name || user.username,
+        username: user.username,
+        score: user.score,
+        isAdmin: user.isAdmin,
+        joinedAt: user.joinedAt,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        code: user.code,
+        access_code: user.access_code
+      }))
+    }));
+  }, [leaderboard]);
+  
+  // Fetch the current game state from the database
+  const fetchGameState = async () => {
+    try {
+      const state = await gameStateService.getGameState();
+      
+      setGameState(prev => ({
+        ...prev,
+        gameStarted: state.is_active,
+        gameStartTime: state.start_time ? new Date(state.start_time).getTime() : undefined,
+        currentChallenge: state.current_challenge_id 
+          ? prev.challenges.find(c => c.id === state.current_challenge_id) || null
+          : null
+      }));
+    } catch (error) {
+      console.error('Error fetching game state:', error);
+    }
+  };
 
   // Check for existing user in localStorage on initial load
   useEffect(() => {
@@ -302,31 +383,46 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startChallenge = (challengeId: string) => {
-    setGameState(prev => {
-      const challenge = prev.challenges.find(c => c.id === challengeId);
-      if (!challenge) return prev;
-
-      return {
-        ...prev,
-        currentChallenge: {
-          ...challenge,
-          active: true,
-          startTime: Date.now()
-        },
-        challenges: prev.challenges.map(c => 
-          c.id === challengeId ? { ...c, active: true, startTime: Date.now() } : { ...c, active: false }
-        )
-      };
-    });
+  const startChallenge = async (challengeId: string) => {
+    const challenge = gameState.challenges.find(c => c.id === challengeId);
+    if (!challenge) return;
+    
+    try {
+      await gameStateService.updateGameState({
+        current_challenge_id: challengeId,
+        is_active: true,
+        start_time: new Date(),
+        end_time: null
+      });
+      
+      // The game state will be updated via the real-time subscription
+    } catch (error) {
+      console.error('Error starting challenge:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start challenge',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const endChallenge = () => {
-    setGameState(prev => ({
-      ...prev,
-      currentChallenge: null,
-      challenges: prev.challenges.map(c => ({ ...c, active: false }))
-    }));
+  const endChallenge = async () => {
+    try {
+      await gameStateService.updateGameState({
+        current_challenge_id: null,
+        is_active: false,
+        end_time: new Date()
+      });
+      
+      // The game state will be updated via the real-time subscription
+    } catch (error) {
+      console.error('Error ending challenge:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to end challenge',
+        variant: 'destructive',
+      });
+    }
   };
 
   const updateScore = async (score: number) => {
@@ -373,18 +469,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         access_code: user.access_code || ''
       }));
       
-      setLeaderboard(formattedLeaderboard);
+      // Sort by score in descending order
+      const sortedLeaderboard = [...formattedLeaderboard].sort((a, b) => b.score - a.score);
       
-      // Also update the gameState with the leaderboard data
-      setGameState(prev => ({
-        ...prev,
-        leaderboard: formattedLeaderboard
-      }));
+      setLeaderboard(sortedLeaderboard);
       
       // Update currentPlayer's score if they are in the leaderboard
       if (currentPlayer) {
-        const currentPlayerInLeaderboard = formattedLeaderboard.find(
-          (player: any) => player.id === currentPlayer.id
+        const currentPlayerInLeaderboard = sortedLeaderboard.find(
+          (player) => player.id === currentPlayer.id
         );
         
         if (currentPlayerInLeaderboard && currentPlayerInLeaderboard.score !== currentPlayer.score) {
@@ -397,6 +490,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update leaderboard',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -475,7 +573,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider
       value={{
         gameState,
-        currentPlayer: currentPlayer as Player,
+        currentPlayer,
         allUsers,
         fetchAllUsers,
         isAuthenticated,
@@ -484,7 +582,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         logout,
         updateScore,
-        leaderboard,
+        leaderboard: leaderboard.map(user => ({
+          id: user.id,
+          name: user.name || user.username,
+          username: user.username,
+          score: user.score,
+          isAdmin: user.isAdmin,
+          joinedAt: user.joinedAt,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          code: user.code,
+          access_code: user.access_code
+        })),
         refreshLeaderboard,
         isAdmin,
         setIsAdmin,
@@ -492,8 +601,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         startChallenge,
         endChallenge,
-      }}
-    >
+      }}>
       {children}
     </GameContext.Provider>
   );

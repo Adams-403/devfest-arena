@@ -11,16 +11,53 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- Enable RLS
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Create policies
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own data" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+
+-- Create policy to allow users to view their own data
 CREATE POLICY "Users can view their own data"
   ON public.users
   FOR SELECT
-  USING (auth.uid() = id);
+  USING (auth.uid()::text::uuid = id);
 
+-- Create policy to allow admins to view all users
+CREATE POLICY "Admins can view all users"
+  ON public.users
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM auth.users 
+      WHERE id = auth.uid()::text::uuid
+      AND raw_user_meta_data->>'is_admin' = 'true'
+    )
+  );
+
+-- Create policy to allow users to update their own data
 CREATE POLICY "Users can update their own data"
   ON public.users
   FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid()::text::uuid = id)
+  WITH CHECK (auth.uid()::text::uuid = id);
+
+-- Create policy to allow admins to update any user
+CREATE POLICY "Admins can update any user"
+  ON public.users
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM auth.users 
+      WHERE id = auth.uid()::text::uuid
+      AND raw_user_meta_data->>'is_admin' = 'true'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM auth.users 
+      WHERE id = auth.uid()::text::uuid
+      AND raw_user_meta_data->>'is_admin' = 'true'
+    )
+  );
 
 -- Create a function to handle new user signups
 CREATE OR REPLACE FUNCTION public.handle_new_user()

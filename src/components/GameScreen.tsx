@@ -46,7 +46,14 @@ export const GameScreen = () => {
       return (
         <div className="text-center p-12 bg-muted/50 rounded-lg">
           <p className="text-xl text-muted-foreground">
-            {isAdmin ? 'Start a challenge from the admin panel' : 'Waiting for the next challenge...'}
+            {isAdmin ? (
+              <span className="animate-pulse">Select a challenge to begin</span>
+            ) : (
+              <span className="flex flex-col items-center gap-2">
+                <span className="inline-block h-4 w-4 rounded-full bg-yellow-400 animate-pulse"></span>
+                <span>Waiting for the next challenge...</span>
+              </span>
+            )}
           </p>
         </div>
       );
@@ -92,114 +99,135 @@ export const GameScreen = () => {
     }
   }, [isAdmin]);
 
+  // Show game status indicator
+  const renderGameStatus = () => {
+    if (gameState.gameStarted) {
+      return (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+          Game in progress
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium">
+        <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+        Waiting to start
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-card/50">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  DevFest Arena
-                </h1>
-                {isAdmin && (
-                  <div className="flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-accent" />
-                    <span className="text-sm text-muted-foreground">
-                      {isAdminView ? 'Admin Mode' : 'Player Mode'}
-                    </span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center gap-4">
+              {renderGameStatus()}
+            </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                DevFest Arena
+              </h1>
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-accent" />
+                  <span className="text-sm text-muted-foreground">
+                    {isAdminView ? 'Admin Mode' : 'Player Mode'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
               {currentPlayer && (
-                <p className="text-sm text-muted-foreground">
+                <p className="hidden md:block text-sm text-muted-foreground">
                   Welcome, <span className="font-medium text-foreground">{currentPlayer.name}</span> • Score: <span className="font-bold text-primary">{currentPlayer.score}</span>
                 </p>
               )}
-            </div>
-            <div className="flex gap-2">
-              {isAdmin && (
-                <div className="relative group">
-                  <Button 
-                    onClick={() => setIsAdminView(!isAdminView)} 
-                    variant="outline" 
-                    size="sm"
-                    className="gap-2 hidden sm:flex"
-                    aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
-                  >
-                    {isAdminView ? (
-                      <>
-                        <User className="h-4 w-4" />
-                        Player View
-                      </>
-                    ) : (
-                      <>
-                        <Crown className="h-4 w-4" />
-                        Admin Dashboard
-                      </>
-                    )}
-                  </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={() => setIsAdminView(!isAdminView)} 
-                          variant="outline" 
-                          size="icon"
-                          className="h-9 w-9 sm:hidden"
-                          aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
-                        >
-                          {isAdminView ? (
-                            <User className="h-4 w-4" />
-                          ) : (
-                            <Crown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>{isAdminView ? 'Player View' : 'Admin Dashboard'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              )}
-              
-              {!isAdminView && (
-                <div className="relative group">
-                  <Button 
-                    onClick={handleShare} 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2 hidden sm:flex"
-                    aria-label="Share"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={handleShare} 
-                          variant="outline" 
-                          size="icon"
-                          className="h-9 w-9 sm:hidden"
-                          aria-label="Share"
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>Share</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              )}
-              
-              <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <div className="relative group">
+                    <Button 
+                      onClick={() => setIsAdminView(!isAdminView)} 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2 hidden sm:flex"
+                      aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
+                    >
+                      {isAdminView ? (
+                        <>
+                          <User className="h-4 w-4" />
+                          Player View
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="h-4 w-4" />
+                          Admin Dashboard
+                        </>
+                      )}
+                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={() => setIsAdminView(!isAdminView)} 
+                            variant="outline" 
+                            size="icon"
+                            className="h-9 w-9 sm:hidden"
+                            aria-label={isAdminView ? 'Switch to Player View' : 'Admin Dashboard'}
+                          >
+                            {isAdminView ? (
+                              <User className="h-4 w-4" />
+                            ) : (
+                              <Crown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>{isAdminView ? 'Player View' : 'Admin Dashboard'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
+                
+                {!isAdminView && (
+                  <div className="relative group">
+                    <Button 
+                      onClick={handleShare} 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2 hidden sm:flex"
+                      aria-label="Share"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={handleShare} 
+                            variant="outline" 
+                            size="icon"
+                            className="h-9 w-9 sm:hidden"
+                            aria-label="Share"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>Share</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
+                
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -210,7 +238,7 @@ export const GameScreen = () => {
           <div className="lg:col-span-2 space-y-6">
             {isAdminView ? <AdminDashboard /> : renderChallenge()}
           </div>
-          <div>
+          <div className="space-y-6">
             <Leaderboard />
           </div>
         </div>
