@@ -223,4 +223,15 @@ export const authService = {
     
     return data || [];
   },
+
+  async logout(): Promise<{ error?: Error }> {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      return {};
+    } catch (error: any) {
+      console.error('Error signing out:', error);
+      return { error };
+    }
+  },
 };

@@ -23,10 +23,15 @@ export const GameScreen = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('devfest-current-player');
-    localStorage.removeItem('devfest-is-admin');
-    window.location.reload();
+  const { logout } = useGame();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // The page will be automatically refreshed by the auth state change listener
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const renderChallenge = () => {

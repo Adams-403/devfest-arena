@@ -159,6 +159,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      // Sign out from Supabase
+      const { error } = await authService.logout();
+      
+      if (error) throw error;
+      
       // Clear user data from state and localStorage
       setCurrentPlayer(null);
       setIsAuthenticated(false);
@@ -170,11 +175,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Logged out',
         description: 'You have been successfully logged out.',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error logging out:', error);
       toast({
         title: 'Logout Failed',
-        description: 'An error occurred while logging out.',
+        description: error.message || 'An error occurred while logging out.',
         variant: 'destructive',
       });
     }
