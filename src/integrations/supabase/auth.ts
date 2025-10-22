@@ -92,60 +92,57 @@ export const authService = {
         throw new Error('Access code must be exactly 4 digits');
       }
 
-      // Check if username already exists
+      // Check if user already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
-        .select('id')
+        .select('*')
         .eq('username', username)
         .maybeSingle();
 
-      console.log('Existing user check:', { existingUser, checkError });
-
       if (checkError) {
         console.error('Error checking existing user:', checkError);
-        throw new Error('Error checking username availability');
+        throw new Error('Error checking user existence');
       }
 
       if (existingUser) {
-        return {
-          success: false,
-          message: 'Username already exists',
-          error: 'USERNAME_EXISTS'
-        };
+        // If user exists, try to log them in instead
+        console.log('User exists, attempting login instead');
+        return this.login(username, accessCode);
       }
 
       // Create new user
-      const userData = {
-        username,
-        access_code: accessCode,
-        score: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      console.log('Creating user with data:', userData);
-      
       const { data: newUser, error: createError } = await supabase
         .from('users')
-        .insert(userData)
-        .select('*')
+        .insert([
+          {
+            username,
+            access_code: accessCode,
+            score: 0,
+          },
+        ])
+        .select()
         .single();
-
-      console.log('User creation result:', { newUser, createError });
 
       if (createError) {
         console.error('Error creating user:', createError);
         throw new Error(createError.message || 'Failed to create user');
       }
 
-      if (!newUser) {
-        throw new Error('No user data returned after creation');
-      }
-
+      console.log('User created successfully:', newUser);
+      
       return {
         success: true,
         message: 'Account created successfully',
-        data: { user: newUser }
+        data: {
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            access_code: newUser.access_code,
+            score: newUser.score,
+            created_at: newUser.created_at,
+            updated_at: newUser.updated_at,
+          },
+        },
       };
     } catch (error: any) {
       console.error('Signup error:', error);

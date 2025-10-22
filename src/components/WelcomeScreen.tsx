@@ -10,7 +10,7 @@ export const WelcomeScreen = () => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignup, setIsSignup] = useState(false);
+  const [isSignup, setIsSignup] = useState(true); // Show signup by default
   const [error, setError] = useState('');
   const { login, signUp, setIsAdmin, isAdmin } = useGame();
   const { toast } = useToast();
