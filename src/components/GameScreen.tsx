@@ -165,10 +165,36 @@ export const GameScreen = () => {
               )}
               
               {!isAdminView && (
-                <Button onClick={handleShare} variant="outline" size="sm" className="gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
+                <div className="relative group">
+                  <Button 
+                    onClick={handleShare} 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 hidden sm:flex"
+                    aria-label="Share"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={handleShare} 
+                          variant="outline" 
+                          size="icon"
+                          className="h-9 w-9 sm:hidden"
+                          aria-label="Share"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Share</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
               
               <Button onClick={handleLogout} variant="outline" size="sm">
