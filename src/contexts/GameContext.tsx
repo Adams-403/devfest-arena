@@ -121,6 +121,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Set up real-time subscription for leaderboard updates
+  useEffect(() => {
+    // Initial fetch of all users
+    fetchAllUsers();
+    
+    // Set up real-time subscription for users table
+    const usersSubscription = supabase
+      .channel('users_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'users' 
+        }, 
+        (payload) => {
+          console.log('Users table changed:', payload);
+          fetchLeaderboard();
+          fetchAllUsers();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(usersSubscription);
+    };
+  }, []);
+
   // Check for existing user in localStorage on initial load
   useEffect(() => {
     const checkStoredUser = async () => {
@@ -330,12 +358,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchLeaderboard = async () => {
     try {
       const leaderboardData = await authService.getLeaderboard();
+      const now = Date.now();
       
-      setLeaderboard(leaderboardData.map((user: any) => ({
+      const formattedLeaderboard = leaderboardData.map((user: any) => ({
         id: user.id,
+        name: user.username,
         username: user.username,
-        score: user.score
-      })));
+        score: user.score,
+        isAdmin: user.is_admin || false,
+        joinedAt: user.created_at ? new Date(user.created_at).getTime() : now,
+        created_at: user.created_at || new Date().toISOString(),
+        updated_at: user.updated_at || new Date().toISOString(),
+        code: user.access_code || '',
+        access_code: user.access_code || ''
+      }));
+      
+      setLeaderboard(formattedLeaderboard);
+      
+      // Also update the gameState with the leaderboard data
+      setGameState(prev => ({
+        ...prev,
+        leaderboard: formattedLeaderboard
+      }));
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
     }
