@@ -19,6 +19,8 @@ interface GameContextType {
   setIsAdmin: (value: boolean) => void;
   authError: string | null;
   loading: boolean;
+  startChallenge: (challengeId: string) => void;
+  endChallenge: () => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -378,28 +380,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       throw error;
-    } finally {
       setIsLoading(false);
     }
   };
 
+  // The actual return statement for the component
   return (
-    <GameContext.Provider value={{
-      gameState,
-      currentPlayer,
-      isAuthenticated,
-      isLoading,
-      login,
-      signUp,
-      logout,
-      updateScore,
-      leaderboard,
-      refreshLeaderboard,
-      isAdmin,
-      setIsAdmin,
-      authError,
-      loading
-    }}>
+    <GameContext.Provider
+      value={{
+        gameState,
+        currentPlayer: currentPlayer as Player,
+        isAuthenticated,
+        isLoading,
+        login,
+        signUp,
+        logout,
+        updateScore,
+        leaderboard,
+        refreshLeaderboard,
+        isAdmin,
+        setIsAdmin,
+        authError,
+        loading,
+        startChallenge,
+        endChallenge,
+      }}
+    >
       {children}
     </GameContext.Provider>
   );
