@@ -106,16 +106,16 @@ export const GameScreen = () => {
   const renderGameStatus = () => {
     if (gameState.gameStarted) {
       return (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-medium">
-          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          Game in progress
+        <div className="flex items-center">
+          <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />
+          <span className="sr-only">Game in progress</span>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium">
-        <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-        Waiting to start
+      <div className="flex items-center">
+        <span className="h-3 w-3 rounded-full bg-yellow-400" aria-hidden="true" />
+        <span className="sr-only">Waiting to start</span>
       </div>
     );
   };
