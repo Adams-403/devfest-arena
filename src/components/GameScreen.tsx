@@ -135,14 +135,6 @@ export const GameScreen = () => {
                 alt="DevFest Arena Logo"
                 className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain"
               />
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-accent" />
-                  <span className="text-sm text-muted-foreground">
-                    {isAdminView ? 'Admin Mode' : 'Player Mode'}
-                  </span>
-                </div>
-              )}
             </div>
             <div className="flex items-center gap-2">
               {currentPlayer && (
