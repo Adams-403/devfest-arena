@@ -1,4 +1,5 @@
 import { useGame } from '@/contexts/GameContext';
+import HeaderLogo from '@/../public/assets/0216-GfD-DevFest-Toolkit-Stickers-03.png';
 import { Leaderboard } from './Leaderboard';
 import { ShakeChallenge } from './challenges/ShakeChallenge';
 import { PollChallenge } from './challenges/PollChallenge';
@@ -131,7 +132,7 @@ export const GameScreen = () => {
             </div>
             <div className="flex items-center gap-2">
               <img
-                src="/assets/0216-GfD-DevFest-Toolkit-Stickers-03.png"
+                src={HeaderLogo}
                 alt="DevFest Arena Logo"
                 className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain"
               />

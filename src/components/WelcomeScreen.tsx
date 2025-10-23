@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useGame } from '@/contexts/GameContext';
 import { Rocket, Trophy, AlertCircle, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import DevFestLogo from '@/../public/assets/0216-GfD-DevFest-Toolkit-Stickers-06.png';
 
 export const WelcomeScreen = () => {
   const [name, setName] = useState('');
@@ -53,7 +54,7 @@ export const WelcomeScreen = () => {
             <div className="google-border p-1 md:p-1.5 lg:p-2 w-56 sm:w-64 md:w-72 lg:w-80 xl:w-88">
               <div className="google-border-inner w-full h-full p-2 md:p-4">
                 <img
-                  src="/assets/0216-GfD-DevFest-Toolkit-Stickers-06.png"
+                  src={DevFestLogo}
                   alt="DevFest Logo"
                   className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 object-contain block drop-shadow-2xl"
                   style={{ margin: 0 }}

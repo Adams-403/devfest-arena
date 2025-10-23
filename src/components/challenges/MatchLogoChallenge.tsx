@@ -126,20 +126,13 @@ export const MatchLogoChallenge: React.FC = () => {
             c.key === firstCard.key ? { ...c, matched: true, flipped: true } : c
           );
           setCards(newCards);
-          setMatches((m) => m + 1);
+          const newMatches = matches + 1;
+          setMatches(newMatches);
 
-          // award points
-          // updateScore expects a single numeric argument (points to add)
-          try {
-            updateScore(10);
-          } catch {
-            /* ignore */
-          }
-
-          toast.success('Matched pair! +10 points');
+          toast.success('Matched pair!');
 
           // if all matched, finish
-          if (matches + 1 === LOGO_FILES.length) {
+          if (newMatches === LOGO_FILES.length) {
             // finalize
             finishGame();
           }
@@ -158,35 +151,38 @@ export const MatchLogoChallenge: React.FC = () => {
     }
   };
 
+  const calculateTimeBonus = (timeMs: number): number => {
+    if (timeMs < 20000) return 10;  // Under 20 seconds
+    if (timeMs < 30000) return 5;   // Under 30 seconds
+    if (timeMs < 50000) return 2;   // Under 50 seconds
+    return 0;                       // 50+ seconds
+  };
+
   const finishGame = () => {
     if (!startTime) return;
     const totalMs = Date.now() - startTime;
     setElapsedMs(totalMs);
     setFinished(true);
 
-    // Base points are matches * 10 (we already awarded per match via updateScore)
-    const basePoints = LOGO_FILES.length * 10;
-
-    // Time bonus: faster than TARGET_TIME_SEC gets bonus up to +50% of basePoints
-    const targetMs = TARGET_TIME_SEC * 1000;
-    let bonus = 0;
-    if (totalMs <= targetMs) {
-      // linear bonus: if completed instantly (approaching 0ms) get +50% of base
-      const ratio = 1 - totalMs / targetMs; // 0..1
-      bonus = Math.round(basePoints * 0.5 * ratio);
-    } else {
-      // penalty: lose up to 50% of basePoints proportionally (capped)
-      const over = Math.min(totalMs - targetMs, targetMs); // cap penalty to targetMs
-      const ratio = over / targetMs; // 0..1
-      bonus = -Math.round(basePoints * 0.5 * ratio);
-    }
-
-    const totalAward = basePoints + bonus;
+    // Base points: 5 points per match (8 matches = 40 points total)
+    const basePoints = LOGO_FILES.length * 5;
+    
+    // Calculate time bonus
+    const timeBonus = calculateTimeBonus(totalMs);
+    const totalAward = basePoints + timeBonus;
+    
     setFinalPoints(totalAward);
 
-    // Apply the time-based bonus/penalty to the player's score
+    // Award all points at the end
     try {
-      if (totalAward !== 0) updateScore(totalAward);
+      updateScore(totalAward);
+      
+      // Show toast with bonus info if any
+      if (timeBonus > 0) {
+        toast.success(`Time bonus! +${timeBonus} points for finishing in ${(totalMs/1000).toFixed(1)}s`);
+      } else {
+        toast.success(`Completed! ${basePoints} points earned`);
+      }
     } catch {
       /* ignore */
     }
@@ -201,7 +197,7 @@ export const MatchLogoChallenge: React.FC = () => {
           Match Logos
         </CardTitle>
         <CardDescription>
-          Flip and match identical logos. Each match awards 10 points.
+          Flip and match identical logos. Complete all matches to earn points!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -255,21 +251,53 @@ export const MatchLogoChallenge: React.FC = () => {
             <p className="font-semibold text-lg">Challenge Complete!</p>
             <p className="text-sm text-muted-foreground">Time: <span className="font-medium">{(elapsedMs/1000).toFixed(2)}s</span></p>
             <p className="text-sm text-muted-foreground">Points awarded this round: <span className="font-medium">{finalPoints}</span></p>
-            <div className="flex gap-2 mt-3">
-              <Button onClick={() => {
-                const text = `I just completed Match Logos in ${(elapsedMs/1000).toFixed(2)}s and earned ${finalPoints} points on DevFest Arena! #DevFestArena`;
-                if (navigator.share) {
-                  navigator.share({ text }).catch(() => navigator.clipboard.writeText(text));
-                } else {
-                  navigator.clipboard.writeText(text);
-                  toast.success('Result copied to clipboard!');
-                }
-              }} className="w-full">
-                Share Result
-              </Button>
-              <Button onClick={() => { setFinished(false); setFinalPoints(null); initGame(); }} variant="outline" className="w-full">
-                Play Again
-              </Button>
+            <div className="space-y-2 mt-3">
+              <div className="text-sm bg-muted/50 p-3 rounded-md">
+                <p className="font-medium">Score Breakdown:</p>
+                <div className="flex justify-between">
+                  <span>Base Score (8 matches × 5 points):</span>
+                  <span className="font-mono">{LOGO_FILES.length * 5} points</span>
+                </div>
+                {finalPoints > LOGO_FILES.length * 5 && (
+                  <div className="flex justify-between text-green-500">
+                    <span>Time Bonus:</span>
+                    <span className="font-mono">+{finalPoints - (LOGO_FILES.length * 5)} points</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold mt-1 pt-1 border-t border-border">
+                  <span>Total:</span>
+                  <span className="font-mono">{finalPoints} points</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => {
+                  const timeStr = (elapsedMs/1000).toFixed(1);
+                  const text = `🏆 I matched all ${LOGO_FILES.length} logos in ${timeStr}s and scored ${finalPoints} points! Can you beat my time? #DevFestArena`;
+                  if (navigator.share) {
+                    navigator.share({ 
+                      title: 'Match Logo Challenge',
+                      text: text,
+                      url: window.location.href
+                    }).catch(() => navigator.clipboard.writeText(text));
+                  } else {
+                    navigator.clipboard.writeText(text);
+                    toast.success('Result copied to clipboard!');
+                  }
+                }} className="w-full">
+                  Share Result
+                </Button>
+                <Button 
+                  onClick={() => { 
+                    setFinished(false); 
+                    setFinalPoints(null); 
+                    initGame(); 
+                  }} 
+                  variant="outline" 
+                  className="w-full"
+                >
+                  Play Again
+                </Button>
+              </div>
             </div>
           </div>
         )}
