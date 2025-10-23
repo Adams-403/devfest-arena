@@ -14,7 +14,7 @@ export interface Player {
 
 export interface Challenge {
   id: string;
-  type: 'shake' | 'poll' | 'lucky-tap' | 'emoji' | 'predict' | 'speaker' | 'photo';
+  type: 'shake' | 'poll' | 'lucky-tap' | 'emoji' | 'predict' | 'speaker' | 'photo' | 'match-logos';
   title: string;
   description: string;
   active: boolean;
@@ -27,4 +27,6 @@ export interface GameState {
   currentChallenge: Challenge | null;
   challenges: Challenge[];
   leaderboard: Player[];
+  gameStarted?: boolean;
+  gameStartTime?: number | undefined;
 }

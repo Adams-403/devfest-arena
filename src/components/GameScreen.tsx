@@ -4,6 +4,7 @@ import { ShakeChallenge } from './challenges/ShakeChallenge';
 import { PollChallenge } from './challenges/PollChallenge';
 import { LuckyTapChallenge } from './challenges/LuckyTapChallenge';
 import { EmojiChallenge } from './challenges/EmojiChallenge';
+import MatchLogoChallenge from './challenges/MatchLogoChallenge';
 import { AdminDashboard } from './AdminDashboard';
 import { Button } from './ui/button';
 import { Share2, LogOut, Crown, User } from 'lucide-react';
@@ -68,6 +69,8 @@ export const GameScreen = () => {
         return <LuckyTapChallenge />;
       case 'emoji':
         return <EmojiChallenge />;
+      case 'match-logos':
+        return <MatchLogoChallenge />;
       default:
         return null;
     }

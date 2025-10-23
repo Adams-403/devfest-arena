@@ -71,6 +71,15 @@ const INITIAL_CHALLENGES: Challenge[] = [
     active: false,
     duration: 15
   }
+  ,
+  {
+    id: '5',
+    type: 'match-logos',
+    title: 'Match Logos',
+    description: 'Flip and match identical logos from the arena assets',
+    active: false,
+    duration: 60
+  }
 ];
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
