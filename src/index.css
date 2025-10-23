@@ -123,4 +123,35 @@ All colors MUST be HSL.
     border-radius: calc(var(--radius));
     box-shadow: 0 10px 30px rgba(0,0,0,0.45);
   }
+
+  /* multicolor ring (border-only) using an outer container with padding */
+  .google-border {
+    display: inline-block;
+    border-radius: 9999px;
+    /* conic-gradient split into four Google-like colors */
+    background: conic-gradient(
+      hsl(var(--primary)) 0deg 90deg,
+      hsl(var(--secondary)) 90deg 180deg,
+      hsl(var(--accent)) 180deg 270deg,
+      hsl(var(--success)) 270deg 360deg
+    );
+    /* thinner ring */
+    padding: 2px;
+  }
+
+  /* desktop: make the ring very thin */
+  @media (min-width: 1024px) {
+    .google-border {
+      padding: 1px;
+    }
+  }
+
+  .google-border-inner {
+    border-radius: 9999px;
+    /* fully opaque inner so the gradient doesn't show through */
+    background: hsl(0 0% 0%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
