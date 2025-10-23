@@ -22,23 +22,37 @@ export const Leaderboard = () => {
   const getRankBg = (index: number) => {
     switch (index) {
       case 0:
-        return 'bg-accent/10 border-accent';
+        return 'bg-green-400/10 border-green-400';
       case 1:
-        return 'bg-muted/50 border-muted';
+        return 'bg-yellow-400/10 border-yellow-400';
       case 2:
-        return 'bg-[hsl(30,100%,95%)] border-[hsl(30,100%,50%)]';
+        return 'bg-blue-400/10 border-blue-400';
+      case 3:
+        return 'bg-red-400/10 border-red-400';
       default:
-        return 'bg-card border-border';
+        return 'bg-transparent border-border';
     }
   };
+
+  // Find current player's position
+  const currentPlayerPosition = currentPlayer 
+    ? gameState.leaderboard.findIndex(p => p.id === currentPlayer.id) + 1
+    : 0;
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-primary" />
-          Live Leaderboard
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-primary" />
+            Live Leaderboard
+          </CardTitle>
+          {currentPlayer && (
+            <span className="text-sm text-muted-foreground">
+              Your position: #{currentPlayerPosition || '--'}
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {gameState.leaderboard.length === 0 ? (
