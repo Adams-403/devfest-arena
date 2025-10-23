@@ -2,6 +2,7 @@ import { useGame } from '@/contexts/GameContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCallback, useRef, useState, useEffect } from 'react';
 
 export const Leaderboard = () => {
   const { gameState, currentPlayer } = useGame();
@@ -34,10 +35,39 @@ export const Leaderboard = () => {
     }
   };
 
-  // Find current player's position
+  // Find current player's position and element ref
+  const playerCardsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const [isScrolling, setIsScrolling] = useState(false);
+  
   const currentPlayerPosition = currentPlayer 
     ? gameState.leaderboard.findIndex(p => p.id === currentPlayer.id) + 1
     : 0;
+
+  // Reset refs when leaderboard changes
+  useEffect(() => {
+    playerCardsRef.current = playerCardsRef.current.slice(0, gameState.leaderboard.length);
+  }, [gameState.leaderboard]);
+    
+  const scrollToCurrentPlayer = useCallback(() => {
+    if (currentPlayer && currentPlayerPosition > 0 && !isScrolling) {
+      setIsScrolling(true);
+      const playerCard = playerCardsRef.current[currentPlayerPosition - 1];
+      if (playerCard) {
+        playerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Add a highlight effect
+        playerCard.classList.add('ring-2', 'ring-primary', 'scale-[1.02]');
+        
+        const timeoutId = setTimeout(() => {
+          playerCard.classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
+          setIsScrolling(false);
+        }, 2000);
+
+        return () => clearTimeout(timeoutId);
+      }
+      setIsScrolling(false);
+    }
+  }, [currentPlayer, currentPlayerPosition, isScrolling]);
 
   return (
     <Card className="w-full flex flex-col h-[500px] overflow-hidden">
@@ -49,9 +79,22 @@ export const Leaderboard = () => {
               Live Leaderboard
             </CardTitle>
             {currentPlayer && (
-              <span className="text-sm text-muted-foreground">
-                Your position: #{currentPlayerPosition || '--'}
-              </span>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToCurrentPlayer();
+                }}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer relative group"
+                title="Scroll to your position"
+                disabled={isScrolling}
+              >
+                <span className="relative">
+                  <span className="relative z-10">
+                    Your position: <span className="text-primary font-bold">#{currentPlayerPosition || '--'}</span>
+                  </span>
+                  <span className="absolute bottom-0 left-0 w-full h-px bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
+                </span>
+              </button>
             )}
           </div>
         </CardHeader>
@@ -65,6 +108,7 @@ export const Leaderboard = () => {
           gameState.leaderboard.map((player, index) => (
             <div
               key={player.id}
+              ref={(el) => (playerCardsRef.current[index] = el)}
               className={cn(
                 'flex items-center justify-between p-3 rounded-lg border-2 transition-all',
                 getRankBg(index),
