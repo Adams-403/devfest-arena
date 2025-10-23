@@ -74,15 +74,6 @@ export const AdminDashboard = () => {
                 )}
               </div>
             </div>
-
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="h-4 w-4" />
-                <span className="font-semibold">Active Players</span>
-                <span className="text-sm text-muted-foreground">({gameState.players.length} online)</span>
-              </div>
-              <p className="text-3xl font-bold text-primary">{gameState.players.length}</p>
-            </div>
           </div>
 
           <div className="space-y-2">

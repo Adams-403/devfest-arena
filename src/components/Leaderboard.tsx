@@ -39,14 +39,17 @@ export const Leaderboard = () => {
   const playerCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [isScrolling, setIsScrolling] = useState(false);
   
+  // Get filtered leaderboard with only players who have scored
+  const filteredLeaderboard = gameState.leaderboard.filter(player => player.score > 0);
+  
   const currentPlayerPosition = currentPlayer 
-    ? gameState.leaderboard.findIndex(p => p.id === currentPlayer.id) + 1
+    ? filteredLeaderboard.findIndex(p => p.id === currentPlayer.id) + 1
     : 0;
 
-  // Reset refs when leaderboard changes
+  // Reset refs when filtered leaderboard changes
   useEffect(() => {
-    playerCardsRef.current = playerCardsRef.current.slice(0, gameState.leaderboard.length);
-  }, [gameState.leaderboard]);
+    playerCardsRef.current = playerCardsRef.current.slice(0, filteredLeaderboard.length);
+  }, [filteredLeaderboard]);
     
   const scrollToCurrentPlayer = useCallback(() => {
     if (currentPlayer && currentPlayerPosition > 0 && !isScrolling) {
@@ -90,7 +93,15 @@ export const Leaderboard = () => {
               >
                 <span className="relative">
                   <span className="relative z-10">
-                    Your position: <span className="text-primary font-bold">#{currentPlayerPosition || '--'}</span>
+                    {currentPlayerPosition > 0 ? (
+                      <>
+                        Position: <span className="text-primary font-bold">#{currentPlayerPosition}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground group-hover:text-foreground">
+                        Join to play!
+                      </span>
+                    )}
                   </span>
                   <span className="absolute bottom-0 left-0 w-full h-px bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
                 </span>
@@ -100,12 +111,12 @@ export const Leaderboard = () => {
         </CardHeader>
       </div>
       <CardContent className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
-        {gameState.leaderboard.length === 0 ? (
+        {filteredLeaderboard.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             No players yet. Be the first to join!
           </p>
         ) : (
-          gameState.leaderboard.map((player, index) => (
+          filteredLeaderboard.map((player, index) => (
             <div
               key={player.id}
               ref={(el) => (playerCardsRef.current[index] = el)}
