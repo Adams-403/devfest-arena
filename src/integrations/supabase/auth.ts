@@ -222,12 +222,11 @@ export const authService = {
     return data as LeaderboardUser;
   },
 
-  async getLeaderboard(limit = 10): Promise<LeaderboardUser[]> {
+  async getLeaderboard(): Promise<LeaderboardUser[]> {
     const { data, error } = await supabase
       .from('users')
       .select('id, username, score, created_at, updated_at')
       .order('score', { ascending: false })
-      .limit(limit)
       .returns<LeaderboardUser[]>();
 
     if (error) {

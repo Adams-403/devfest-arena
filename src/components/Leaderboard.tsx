@@ -40,21 +40,23 @@ export const Leaderboard = () => {
     : 0;
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Live Leaderboard
-          </CardTitle>
-          {currentPlayer && (
-            <span className="text-sm text-muted-foreground">
-              Your position: #{currentPlayerPosition || '--'}
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <Card className="w-full flex flex-col h-[500px] overflow-hidden">
+      <div className="sticky top-0 z-10 bg-card border-b border-border/50">
+        <CardHeader className="pb-4">
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-primary" />
+              Live Leaderboard
+            </CardTitle>
+            {currentPlayer && (
+              <span className="text-sm text-muted-foreground">
+                Your position: #{currentPlayerPosition || '--'}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+      </div>
+      <CardContent className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
         {gameState.leaderboard.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             No players yet. Be the first to join!
