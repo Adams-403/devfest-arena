@@ -124,7 +124,7 @@ export const GameScreen = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-card/50">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          <div className="py-3 h-16 sm:h-18 md:h-20 lg:h-24 flex items-center">
+          <div className="py-2 h-14 sm:h-16 md:h-16 lg:h-16 flex items-center">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
               {renderGameStatus()}
@@ -133,7 +133,7 @@ export const GameScreen = () => {
               <img
                 src="/assets/0216-GfD-DevFest-Toolkit-Stickers-03.png"
                 alt="DevFest Arena Logo"
-                className="w-48 sm:w-64 md:w-80 lg:w-96 xl:w-[420px] max-h-full h-auto object-contain"
+                className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain"
               />
               {isAdmin && (
                 <div className="flex items-center gap-2">
