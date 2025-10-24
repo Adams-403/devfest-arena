@@ -113,27 +113,45 @@ export const ShakeChallenge: React.FC = () => {
     setIsActive(true);
   };
 
-  const handleComplete = useCallback(() => {
+  const handleComplete = useCallback(async () => {
     if (!isActive || !isClient) return;
     
     // Calculate points based on platform
     const threshold = isMobile ? 300 : 150; // 300 shakes on mobile, 150 taps on desktop
-    const points = Math.floor(shakeCount / threshold) * 5;
+    const completedSets = Math.floor(shakeCount / threshold);
+    const pointsToAdd = completedSets * 5;
     
-    console.log('Shake Challenge Complete:', { shakeCount, threshold, points, isMobile });
+    console.log('Shake Challenge Complete:', { 
+      shakeCount, 
+      threshold, 
+      completedSets,
+      pointsToAdd, 
+      isMobile 
+    });
     
-    // Always show the success message if there were any taps/shakes
-    if (shakeCount > 0) {
-      updateScore(points);
-      toast.success(`Time's up! 🎉`, {
-        description: `You ${isMobile ? 'shook your phone' : 'tapped'} ${shakeCount} times!\n+${points} points earned (5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
-        duration: 8000,
-      });
-    } else {
-      toast.error(`Time's up! 😅`, {
-        description: `You didn't ${isMobile ? 'shake your phone' : 'tap'} at all!\nTry again and ${isMobile ? 'shake' : 'tap'} harder next time!`,
-        duration: 8000,
-      });
+    try {
+      if (shakeCount > 0) {
+        if (pointsToAdd > 0) {
+          await updateScore(pointsToAdd);
+          toast.success(`Time's up! 🎉`, {
+            description: `You ${isMobile ? 'shook' : 'tapped'} ${shakeCount} times!\n+${pointsToAdd} points earned (${completedSets} × 5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
+            duration: 8000,
+          });
+        } else {
+          toast.info(`Time's up! ⏱️`, {
+            description: `You ${isMobile ? 'shook' : 'tapped'} ${shakeCount} times!\n${isMobile ? 'Shake' : 'Tap'} more to earn points! (5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
+            duration: 8000,
+          });
+        }
+      } else {
+        toast.error(`Time's up! 😅`, {
+          description: `You didn't ${isMobile ? 'shake' : 'tap'} at all!\nTry again and ${isMobile ? 'shake' : 'tap'} harder next time!`,
+          duration: 8000,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating score:', error);
+      toast.error('Error updating score. Please try again.');
     }
     
     setIsActive(false);

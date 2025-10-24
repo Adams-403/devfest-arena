@@ -1,73 +1,89 @@
-# Welcome to your Lovable project
+# DevFest Arena 🚀
 
-## Project info
+A fun and interactive game platform built for DevFest events, featuring various challenges and activities for participants.
 
-**URL**: https://lovable.dev/projects/db613053-cb56-4a5c-987d-f07a81df881f
+## 🎮 Features
 
-## How can I edit this code?
+- Multiple game challenges
+- Real-time score tracking
+- Responsive design for all devices
+- Engaging user interface
+- Easy to set up and deploy
 
-There are several ways of editing your application.
+## 🛠️ Technologies Used
 
-**Use Lovable**
+- ⚡ Vite - Next Generation Frontend Tooling
+- ⚛️ React - A JavaScript library for building user interfaces
+- 📘 TypeScript - Type-safe JavaScript
+- 🎨 Tailwind CSS - A utility-first CSS framework
+- 🎭 shadcn/ui - Beautifully designed components
+- 🔥 Supabase - Backend as a Service
+- 🎯 Framer Motion - Animation library for React
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/db613053-cb56-4a5c-987d-f07a81df881f) and start prompting.
+## 🚀 Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 16+ and npm
+- Git
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/devfest-arena.git
+   cd devfest-arena
+   ```
 
-Follow these steps:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Set up environment variables:
+   Create a `.env` file in the root directory and add your Supabase URL and key:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+5. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 🎯 Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
+
+## 📂 Project Structure
+
+```
+src/
+├── components/       # Reusable components
+│   ├── challenges/  # Game challenge components
+│   └── ui/          # UI components
+├── contexts/        # React contexts
+├── hooks/           # Custom React hooks
+├── integrations/    # Third-party integrations
+└── App.tsx          # Main application component
 ```
 
-**Edit a file directly in GitHub**
+## 🤝 Contributing
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-**Use GitHub Codespaces**
+## 📄 License
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## What technologies are used for this project?
+## 🙏 Acknowledgments
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/db613053-cb56-4a5c-987d-f07a81df881f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Google Developer Groups for organizing DevFest
+- All contributors who have helped improve this project
