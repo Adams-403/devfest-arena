@@ -45,7 +45,7 @@ Identify programming languages and frameworks from code snippets in this fast-pa
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/devfest-arena.git
+   git clone https://github.com/Adams-404/devfest-arena.git
    cd devfest-arena
    ```
 
@@ -66,7 +66,7 @@ Identify programming languages and frameworks from code snippets in this fast-pa
    npm run dev
    ```
 
-5. Open [http://localhost:5173](http://localhost:5173) in your browser.
+5. Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ## 🎯 Available Scripts
 
