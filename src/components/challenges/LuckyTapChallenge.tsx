@@ -21,13 +21,6 @@ export const LuckyTapChallenge = () => {
     setLuckyCircle(lucky);
     setIsActive(true);
     setSelected(null);
-
-    setTimeout(() => {
-      if (selected === null) {
-        toast.error('Time\'s up!');
-        setIsActive(false);
-      }
-    }, 3000);
   };
 
   const handleTap = (index: number) => {
