@@ -47,7 +47,7 @@ export const LuckyTapChallenge = () => {
           Lucky Tap
         </CardTitle>
         <CardDescription>
-          Tap the lucky circle in 3 seconds!
+          Find and tap the lucky circle to win 10 points!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
