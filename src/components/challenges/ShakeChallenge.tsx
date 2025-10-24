@@ -13,15 +13,15 @@ export const ShakeChallenge: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentPlayer, updateScore } = useGame();
 
+  // Timer effect
   useEffect(() => {
     if (!isActive) return;
-
+    
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Small delay to ensure the UI updates before showing completion
-          setTimeout(handleComplete, 100);
+          handleComplete();
           return 0;
         }
         return prev - 1;
@@ -29,7 +29,14 @@ export const ShakeChallenge: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isActive, shakeCount]);
+  }, [isActive]); // Removed shakeCount from dependencies
+
+  // Handle completion when time runs out
+  useEffect(() => {
+    if (timeLeft <= 0 && isActive) {
+      handleComplete();
+    }
+  }, [timeLeft, isActive]);
 
   // Handle keyboard input for desktop
   useEffect(() => {
@@ -77,6 +84,10 @@ export const ShakeChallenge: React.FC = () => {
   }, [isActive, isMobile]);
 
   const handleStart = async () => {
+    // Reset states first
+    setShakeCount(0);
+    setTimeLeft(10);
+    
     if (isMobile) {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
         try {
@@ -92,9 +103,8 @@ export const ShakeChallenge: React.FC = () => {
       }
     }
 
+    // Start the challenge after any permission checks
     setIsActive(true);
-    setShakeCount(0);
-    setTimeLeft(10);
   };
 
   const handleComplete = useCallback(() => {
