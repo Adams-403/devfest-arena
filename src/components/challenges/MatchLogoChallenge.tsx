@@ -152,8 +152,8 @@ export const MatchLogoChallenge: React.FC = () => {
   };
 
   const calculateTimeBonus = (timeMs: number): number => {
-    if (timeMs < 20000) return 10;  // Under 20 seconds
-    if (timeMs < 30000) return 5;   // Under 30 seconds
+    if (timeMs < 20000) return 5;   // Under 20 seconds
+    if (timeMs < 30000) return 3;   // Under 30 seconds
     if (timeMs < 50000) return 2;   // Under 50 seconds
     return 0;                       // 50+ seconds
   };
@@ -164,8 +164,8 @@ export const MatchLogoChallenge: React.FC = () => {
     setElapsedMs(totalMs);
     setFinished(true);
 
-    // Base points: 5 points per match (8 matches = 40 points total)
-    const basePoints = LOGO_FILES.length * 5;
+    // Base points: 1.25 points per match (8 matches = 10 points total)
+    const basePoints = 10;
     
     // Calculate time bonus
     const timeBonus = calculateTimeBonus(totalMs);
@@ -255,13 +255,13 @@ export const MatchLogoChallenge: React.FC = () => {
               <div className="text-sm bg-muted/50 p-3 rounded-md">
                 <p className="font-medium">Score Breakdown:</p>
                 <div className="flex justify-between">
-                  <span>Base Score (8 matches × 5 points):</span>
-                  <span className="font-mono">{LOGO_FILES.length * 5} points</span>
+                  <span>Base Score (8 matches × 1.25 points):</span>
+                  <span className="font-mono">10 points</span>
                 </div>
-                {finalPoints > LOGO_FILES.length * 5 && (
+                {finalPoints > 10 && (
                   <div className="flex justify-between text-green-500">
                     <span>Time Bonus:</span>
-                    <span className="font-mono">+{finalPoints - (LOGO_FILES.length * 5)} points</span>
+                    <span className="font-mono">+{finalPoints - 10} points</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold mt-1 pt-1 border-t border-border">
