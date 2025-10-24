@@ -23,7 +23,7 @@ This project and everyone participating in it is governed by our [Code of Conduc
 1. Fork the repository on GitHub
 2. Clone your fork locally
    ```bash
-   git clone https://github.com/your-username/devfest-arena.git
+   git clone https://github.com/Adams-404/devfest-arena.git
    cd devfest-arena
    ```
 3. Install dependencies
@@ -53,7 +53,7 @@ This project and everyone participating in it is governed by our [Code of Conduc
 1. Always work on a feature branch, never on `main`
 2. Keep your fork in sync with the upstream repository
    ```bash
-   git remote add upstream https://github.com/your-username/devfest-arena.git
+   git remote add upstream https://github.com/Adams-404/devfest-arena.git
    git fetch upstream
    git merge upstream/main
    ```
