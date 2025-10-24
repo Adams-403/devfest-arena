@@ -1,14 +1,28 @@
-# DevFest Arena 🚀
+# 🎮 DevFest Arena
 
-A fun and interactive game platform built for DevFest events, featuring various challenges and activities for participants.
+An interactive gaming platform designed for DevFest events, offering a collection of engaging challenges that test participants' skills, speed, and knowledge. Compete with others, climb the leaderboard, and have fun while learning!
 
-## 🎮 Features
+## 🎯 Game Challenges
 
-- Multiple game challenges
-- Real-time score tracking
-- Responsive design for all devices
-- Engaging user interface
-- Easy to set up and deploy
+### 🧩 Match the Logo
+Test your tech brand recognition skills by matching company logos to their names against the clock!
+
+### 📱 Shake Challenge
+A fun motion-based game where you need to shake your device to complete challenges. Perfect for mobile users!
+
+### 🧠 Tech Trivia
+Challenge your knowledge with tech-related questions across different categories and difficulty levels.
+
+### 💻 Code Snippet Challenge
+Identify programming languages and frameworks from code snippets in this fast-paced challenge.
+
+## 🏆 Features
+
+- **Multiple Game Modes**: Different types of challenges to keep things exciting
+- **Real-time Leaderboard**: Compete with other participants in real-time
+- **Responsive Design**: Play on any device - desktop, tablet, or mobile
+- **Engaging UI/UX**: Beautifully designed interface with smooth animations
+- **Easy Setup**: Get started quickly with our simple setup process
 
 ## 🛠️ Technologies Used
 
@@ -62,17 +76,35 @@ A fun and interactive game platform built for DevFest events, featuring various 
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript type checking
 
+## 🎮 Game Components
+
+### Challenges
+- `MatchLogoChallenge`: Logo matching game component
+- `ShakeChallenge`: Motion-based shaking game
+- `TriviaChallenge`: Tech trivia questions
+- `CodeSnippetChallenge`: Code recognition game
+
+### Core Features
+- **Game Engine**: Handles game state, scoring, and progression
+- **Leaderboard**: Real-time score tracking and rankings
+- **User Profiles**: Track your progress and achievements
+- **Responsive Design**: Optimized for all screen sizes
+
 ## 📂 Project Structure
 
 ```
 src/
-├── components/       # Reusable components
-│   ├── challenges/  # Game challenge components
-│   └── ui/          # UI components
-├── contexts/        # React contexts
-├── hooks/           # Custom React hooks
-├── integrations/    # Third-party integrations
-└── App.tsx          # Main application component
+├── components/              
+│   ├── challenges/         # Game challenge components
+│   │   ├── MatchLogoChallenge/  # Logo matching game
+│   │   ├── ShakeChallenge/      # Motion-based challenge
+│   │   ├── TriviaChallenge/     # Tech quiz game
+│   │   └── CodeSnippetChallenge/ # Code recognition game
+│   └── ui/                  # Reusable UI components
+├── contexts/              # Game state and user context
+├── hooks/                 # Custom React hooks
+├── integrations/          # Third-party integrations
+└── App.tsx                # Main application component
 ```
 
 ## 🤝 Contributing
