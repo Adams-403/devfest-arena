@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/contexts/GameContext';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, Keyboard } from 'lucide-react';
 import { toast } from 'sonner';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export const ShakeChallenge: React.FC = () => {
   const [shakeCount, setShakeCount] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentPlayer, updateScore } = useGame();
 
   useEffect(() => {
@@ -29,8 +31,24 @@ export const ShakeChallenge: React.FC = () => {
     return () => clearInterval(timer);
   }, [isActive, shakeCount]);
 
+  // Handle keyboard input for desktop
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || isMobile) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setShakeCount(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, isMobile]);
+
+  // Handle device motion for mobile
+  useEffect(() => {
+    if (!isActive || !isMobile) return;
 
     let lastX = 0, lastY = 0, lastZ = 0;
     let shakeThreshold = 15;
@@ -56,19 +74,21 @@ export const ShakeChallenge: React.FC = () => {
 
     window.addEventListener('devicemotion', handleMotion);
     return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [isActive]);
+  }, [isActive, isMobile]);
 
   const handleStart = async () => {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
-      try {
-        const permission = await (DeviceMotionEvent as any).requestPermission();
-        if (permission !== 'granted') {
-          toast.error('Motion permission required');
+    if (isMobile) {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        try {
+          const permission = await (DeviceMotionEvent as any).requestPermission();
+          if (permission !== 'granted') {
+            toast.error('Motion permission required');
+            return;
+          }
+        } catch (error) {
+          toast.error('Could not get motion permission');
           return;
         }
-      } catch (error) {
-        toast.error('Could not get motion permission');
-        return;
       }
     }
 
@@ -113,13 +133,17 @@ export const ShakeChallenge: React.FC = () => {
           Shake War
         </CardTitle>
         <CardDescription>
-          Shake your phone as fast as you can in 10 seconds!
+          {isMobile ? (
+            'Shake your phone as fast as you can in 10 seconds!'
+          ) : (
+            'Press the SPACEBAR as fast as you can in 10 seconds!'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {!isActive ? (
           <Button onClick={handleStart} className="w-full h-16 text-xl" size="lg">
-            Start Shaking!
+            {isMobile ? 'Start Shaking!' : 'Start Tapping!'}
           </Button>
         ) : (
           <>
