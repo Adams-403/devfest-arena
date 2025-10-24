@@ -10,8 +10,14 @@ export const ShakeChallenge: React.FC = () => {
   const [shakeCount, setShakeCount] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
+  const [isClient, setIsClient] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentPlayer, updateScore } = useGame();
+
+  // Ensure we're on the client before accessing window
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -40,7 +46,7 @@ export const ShakeChallenge: React.FC = () => {
 
   // Handle keyboard input for desktop
   useEffect(() => {
-    if (!isActive || isMobile) return;
+    if (!isClient || !isActive || isMobile) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -55,7 +61,7 @@ export const ShakeChallenge: React.FC = () => {
 
   // Handle device motion for mobile
   useEffect(() => {
-    if (!isActive || !isMobile) return;
+    if (!isClient || !isActive || !isMobile) return;
 
     let lastX = 0, lastY = 0, lastZ = 0;
     let shakeThreshold = 15;
@@ -108,45 +114,47 @@ export const ShakeChallenge: React.FC = () => {
   };
 
   const handleComplete = useCallback(() => {
-    if (!isActive) return;
+    if (!isActive || !isClient) return;
     
-    // Calculate points
-    const points = Math.floor(shakeCount / 300) * 5;
+    // Calculate points based on platform
+    const threshold = isMobile ? 300 : 150; // 300 shakes on mobile, 150 taps on desktop
+    const points = Math.floor(shakeCount / threshold) * 5;
     
-    // Show time's up notification with points
-    if (points > 0) {
+    console.log('Shake Challenge Complete:', { shakeCount, threshold, points, isMobile });
+    
+    // Always show the success message if there were any taps/shakes
+    if (shakeCount > 0) {
       updateScore(points);
       toast.success(`Time's up! 🎉`, {
-        description: `You shook your phone ${shakeCount} times!\n+${points} points earned (5 points per 300 shakes)`,
-        duration: 8000,
-      });
-    } else if (shakeCount > 0) {
-      toast.info(`Time's up! ⏱️`, {
-        description: `You shook your phone ${shakeCount} times!\nShake more next time to earn points! (5 points per 300 shakes)`,
+        description: `You ${isMobile ? 'shook your phone' : 'tapped'} ${shakeCount} times!\n+${points} points earned (5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
         duration: 8000,
       });
     } else {
       toast.error(`Time's up! 😅`, {
-        description: `You didn't shake your phone enough to earn points.\nTry again and shake harder next time!`,
+        description: `You didn't ${isMobile ? 'shake your phone' : 'tap'} at all!\nTry again and ${isMobile ? 'shake' : 'tap'} harder next time!`,
         duration: 8000,
       });
     }
     
     setIsActive(false);
-  }, [isActive, shakeCount, updateScore]);
+  }, [isActive, shakeCount, updateScore, isMobile, isClient]);
 
   return (
     <Card className="border-2 border-primary w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Smartphone className="h-6 w-6 text-primary" />
-          Shake War
+          {isMobile ? (
+            <Smartphone className="h-6 w-6 text-primary" />
+          ) : (
+            <Keyboard className="h-6 w-6 text-primary" />
+          )}
+          {isMobile ? 'Shake War' : 'Tap War'}
         </CardTitle>
         <CardDescription>
           {isMobile ? (
-            'Shake your phone as fast as you can in 10 seconds!'
+            'Shake your phone as fast as you can in 10 seconds! (5 points per 300 shakes)'
           ) : (
-            'Press the SPACEBAR as fast as you can in 10 seconds!'
+            'Press the SPACEBAR as fast as you can in 10 seconds! (5 points per 150 taps)'
           )}
         </CardDescription>
       </CardHeader>
@@ -162,7 +170,9 @@ export const ShakeChallenge: React.FC = () => {
                 <p className="text-6xl font-bold text-primary animate-pulse">
                   {shakeCount}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">Shakes</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {isMobile ? 'Shakes' : 'Taps'}
+                </p>
               </div>
               <div className="bg-secondary/10 rounded-lg p-4">
                 <p className="text-4xl font-bold text-secondary">{timeLeft}s</p>
