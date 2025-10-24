@@ -272,12 +272,12 @@ export const MatchLogoChallenge: React.FC = () => {
               <div className="flex gap-2">
                 <Button onClick={() => {
                   const timeStr = (elapsedMs/1000).toFixed(1);
-                  const text = `🏆 I matched all ${LOGO_FILES.length} logos in ${timeStr}s and scored ${finalPoints} points! Can you beat my time? #DevFestArena`;
+                  const text = `🏆 I matched all ${LOGO_FILES.length} logos in ${timeStr}s and scored ${finalPoints} points! Can you beat my time? Play at df25.gdggombe.com #DevFestArena`;
                   if (navigator.share) {
                     navigator.share({ 
                       title: 'Match Logo Challenge',
                       text: text,
-                      url: window.location.href
+                      url: 'https://df25.gdggombe.com'
                     }).catch(() => navigator.clipboard.writeText(text));
                   } else {
                     navigator.clipboard.writeText(text);

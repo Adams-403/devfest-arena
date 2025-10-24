@@ -22,10 +22,13 @@ export const GameScreen = () => {
   const { gameState, currentPlayer, isAdmin, setIsAdmin } = useGame();
 
   const handleShare = () => {
-    const text = `I'm playing DevFest Arena Gombe 2025! 🚀\nMy score: ${currentPlayer?.score} points\n#DevFestGombe #DevFestArena`;
+    const text = `I'm playing DevFest Arena Gombe 2025! 🚀\nMy score: ${currentPlayer?.score} points\nPlay now at df25.gdggombe.com\n#DevFestGombe #DevFestArena`;
     
     if (navigator.share) {
-      navigator.share({ text });
+      navigator.share({ 
+        text,
+        url: 'https://df25.gdggombe.com'
+      });
     } else {
       navigator.clipboard.writeText(text);
       toast.success('Share text copied to clipboard!');
