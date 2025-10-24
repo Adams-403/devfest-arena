@@ -37,7 +37,7 @@ export const LuckyTapChallenge = () => {
     setIsActive(false);
 
     if (index === luckyCircle && currentPlayer) {
-      updateScore(currentPlayer.id, 10);
+      updateScore(10);
       toast.success('🎉 Lucky tap! +10 points', {
         description: 'You found the lucky circle!'
       });
