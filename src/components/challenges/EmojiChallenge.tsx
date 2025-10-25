@@ -14,6 +14,10 @@ export const EmojiChallenge = () => {
   const [startTime, setStartTime] = useState(0);
   const { currentPlayer, updateScore } = useGame();
 
+  useEffect(() => {
+    startChallenge();
+  }, []);
+
   const startChallenge = () => {
     const target = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
     const shuffled = [...EMOJIS].sort(() => Math.random() - 0.5);
@@ -75,11 +79,6 @@ export const EmojiChallenge = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!isActive && !targetEmoji ? (
-          <Button onClick={startChallenge} className="w-full h-16 text-xl" size="lg">
-            Start Battle
-          </Button>
-        ) : (
           <>
             <div className="bg-primary/10 rounded-lg p-8 text-center">
               <p className="text-sm text-muted-foreground mb-2">Match this:</p>
@@ -105,7 +104,6 @@ export const EmojiChallenge = () => {
               </Button>
             )}
           </>
-        )}
       </CardContent>
     </Card>
   );
