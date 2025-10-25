@@ -24,7 +24,7 @@ export const EmojiChallenge = () => {
     setStartTime(Date.now());
   };
 
-  const handleSelect = (emoji: string) => {
+  const handleSelect = async (emoji: string) => {
     if (!isActive) return;
 
     const responseTime = Date.now() - startTime;
@@ -32,16 +32,33 @@ export const EmojiChallenge = () => {
 
     setIsActive(false);
 
-    if (isCorrect && currentPlayer) {
-      const points = responseTime < 1000 ? 15 : responseTime < 2000 ? 10 : 5;
-      updateScore(currentPlayer.id, points);
-      toast.success(`Correct! +${points} points`, {
-        description: `Response time: ${(responseTime / 1000).toFixed(2)}s`,
-        icon: emoji
-      });
-    } else {
-      toast.error('Wrong emoji!', {
-        icon: '❌'
+    try {
+      if (currentPlayer) {
+        const points = isCorrect ? 1 : -1;
+        await updateScore(points);
+        
+        if (isCorrect) {
+          toast.success('Correct! +1 point', {
+            description: `Response time: ${(responseTime / 1000).toFixed(2)}s`,
+            icon: emoji
+          });
+        } else {
+          toast.error('Wrong emoji! -1 point', {
+            icon: '❌',
+            description: `The correct answer was ${targetEmoji}`
+          });
+        }
+      } else {
+        toast.error('Player not found', {
+          icon: '❌',
+          description: 'Unable to update score'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating score:', error);
+      toast.error('Error updating score', {
+        icon: '❌',
+        description: 'Please try again'
       });
     }
   };
