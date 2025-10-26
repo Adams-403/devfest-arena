@@ -187,8 +187,8 @@ const ShakeChallenge: React.FC = () => {
     });
     
     // Calculate points based on platform
-    // 300 shakes on mobile, 150 taps on desktop for 5 points
-    const threshold = isMobile ? 300 : 150;
+    // 150 shakes on mobile, 150 taps on desktop for 5 points
+    const threshold = isMobile ? 150 : 150;
     const completedSets = Math.floor(finalShakeCount / threshold);
     const pointsToAdd = completedSets * 5;
     
