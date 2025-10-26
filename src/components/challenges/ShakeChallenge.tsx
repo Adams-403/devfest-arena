@@ -9,7 +9,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 const ShakeChallenge: React.FC = () => {
   const [shakeCount, setShakeCount] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(15); // Increased time to 15 seconds for better mobile experience
   const [isClient, setIsClient] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentPlayer, updateScore } = useGame();
@@ -78,8 +78,9 @@ const ShakeChallenge: React.FC = () => {
     console.log('Setting up motion detection...');
     
     let lastX = 0, lastY = 0, lastZ = 0;
-    const SHAKE_THRESHOLD = 12; // Lowered threshold for better sensitivity
-    const SHAKE_TIMEOUT = 50; // Reduced debounce time to 50ms for faster response
+    const SHAKE_THRESHOLD = 8; // Lowered threshold for better sensitivity on mobile
+    const SHAKE_TIMEOUT = 30; // Reduced debounce time to 30ms for faster response
+    const ACCELERATION_THRESHOLD = 1.5; // Lowered for more sensitivity
     let lastUpdate = 0;
     let shakeTimeout: NodeJS.Timeout;
     
@@ -95,38 +96,33 @@ const ShakeChallenge: React.FC = () => {
       // Calculate acceleration vector magnitude
       const acceleration = Math.sqrt(x * x + y * y + z * z);
       
-      // Calculate change in acceleration
+      // Calculate change in acceleration (using absolute values for more sensitivity)
       const deltaX = Math.abs(x - lastX);
       const deltaY = Math.abs(y - lastY);
       const deltaZ = Math.abs(z - lastZ);
       
-      const totalDelta = deltaX + deltaY + deltaZ;
+      // Use a more sensitive calculation that emphasizes movement in any direction
+      const totalDelta = (deltaX + deltaY + deltaZ) * 1.5;
       
       // More sensitive shake detection with multiple conditions
       const isShaking = totalDelta > SHAKE_THRESHOLD || 
-                       (Math.abs(acceleration - 9.81) > 2 && totalDelta > 8);
+                       (Math.abs(acceleration - 9.81) > ACCELERATION_THRESHOLD && totalDelta > 5);
       
       if (isShaking) {
         const now = Date.now();
         // More responsive shake detection with shorter debounce
         if (now - lastUpdate > SHAKE_TIMEOUT) {
-          console.log('Shake detected!', { 
-            x, y, z, 
-            delta: { x: deltaX, y: deltaY, z: deltaZ, total: totalDelta },
-            acceleration
-          });
-          
-          // Clear any pending shake count updates
-          if (shakeTimeout) clearTimeout(shakeTimeout);
-          
-          // Update shake count with a small delay to ensure smooth UI updates
-          shakeTimeout = setTimeout(() => {
-            setShakeCount(prev => {
-              const newCount = prev + 1;
-              console.log('Shake count:', newCount);
-              return newCount;
+          // Update shake count immediately for better responsiveness
+          setShakeCount(prev => {
+            const newCount = prev + 1;
+            console.log('Shake detected!', { 
+              count: newCount,
+              accel: { x, y, z },
+              delta: { x: deltaX, y: deltaY, z: deltaZ, total: totalDelta },
+              acceleration
             });
-          }, 10);
+            return newCount;
+          });
           
           lastUpdate = now;
         }
@@ -190,8 +186,9 @@ const ShakeChallenge: React.FC = () => {
       });
     });
     
-    // Calculate points based on platform
-    const threshold = isMobile ? 300 : 150; // 300 shakes on mobile, 150 taps on desktop
+    // Calculate points - same threshold for both mobile and desktop
+    // but with more sensitive detection, mobile users can achieve higher counts
+    const threshold = 150; // Same threshold for both platforms now
     const completedSets = Math.floor(finalShakeCount / threshold);
     const pointsToAdd = completedSets * 5;
     
