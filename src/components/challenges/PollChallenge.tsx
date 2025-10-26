@@ -284,46 +284,74 @@ export const PollChallenge = () => {
         return newPolls;
       });
       
+      // Ensure we have valid UUID and poll_id
+      const userId = String(currentPlayer?.id);
+      const pollId = String(currentQuestion);
+      
+      if (!userId || !pollId) {
+        throw new Error('Missing required user or poll ID');
+      }
+
       // Update database
       const { data: existingVote, error: fetchError } = await supabase
         .from('poll_votes')
         .select('id')
-        .eq('user_id', currentPlayer.id)
-        .eq('poll_id', currentQuestion)
+        .eq('user_id', userId)
+        .eq('poll_id', pollId)
         .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching existing vote:', fetchError);
+        throw fetchError;
+      }
       
       if (existingVote) {
         const { error: updateError } = await supabase
           .from('poll_votes')
           .update({ option_index: optionIndex })
           .eq('id', existingVote.id);
-        if (updateError) throw updateError;
+        
+        if (updateError) {
+          console.error('Error updating vote:', updateError);
+          throw updateError;
+        }
       } else {
         const { error: insertError } = await supabase
           .from('poll_votes')
           .insert([{
-            user_id: currentPlayer.id,
-            poll_id: currentQuestion,
+            user_id: userId,
+            poll_id: pollId,
             option_index: optionIndex
           }]);
-        if (insertError) throw insertError;
+        
+        if (insertError) {
+          console.error('Error inserting vote:', insertError);
+          throw insertError;
+        }
       }
       
     } catch (error) {
       console.error('Error submitting vote:', error);
       toast.error('Failed to submit vote. Please try again.');
       
-      // Re-fetch the latest state on error
-      const { data: votes } = await supabase
+          // Re-fetch the latest state on error
+      const pollId = String(currentQuestion);
+      const { data: votes, error: votesError } = await supabase
         .from('poll_votes')
         .select('*')
-        .eq('poll_id', currentQuestion);
-        
-      if (votes) {
+        .eq('poll_id', pollId);
+      
+      if (votesError) {
+        console.error('Error fetching votes after error:', votesError);
+        return;
+      }
+      
+      if (votes && votes.length > 0) {
         const voteCounts = votes.reduce((acc, vote) => {
-          acc[vote.option_index] = (acc[vote.option_index] || 0) + 1;
+          const optionIndex = Number(vote.option_index);
+          if (!isNaN(optionIndex)) {
+            acc[optionIndex] = (acc[optionIndex] || 0) + 1;
+          }
           return acc;
         }, {} as Record<number, number>);
         
@@ -332,7 +360,7 @@ export const PollChallenge = () => {
           newPolls[currentQuestion] = {
             ...newPolls[currentQuestion],
             votes: voteCounts,
-            userVotes: votes.map(vote => vote.user_id)
+            userVotes: votes.map(vote => String(vote.user_id))
           };
           return newPolls;
         });
