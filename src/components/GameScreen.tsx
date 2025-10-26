@@ -1,7 +1,7 @@
 import { useGame } from '@/contexts/GameContext';
 import HeaderLogo from '@/../public/assets/0216-GfD-DevFest-Toolkit-Stickers-03.png';
 import { Leaderboard } from './Leaderboard';
-import { ShakeChallenge } from './challenges/ShakeChallenge';
+import ShakeChallenge from './challenges/ShakeChallenge';
 import { PollChallenge } from './challenges/PollChallenge';
 import { LuckyTapChallenge } from './challenges/LuckyTapChallenge';
 import { EmojiChallenge } from './challenges/EmojiChallenge';

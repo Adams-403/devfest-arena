@@ -6,7 +6,7 @@ import { Smartphone, Keyboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
-export const ShakeChallenge: React.FC = () => {
+const ShakeChallenge: React.FC = () => {
   const [shakeCount, setShakeCount] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
@@ -48,36 +48,88 @@ export const ShakeChallenge: React.FC = () => {
   useEffect(() => {
     if (!isClient || !isActive || isMobile) return;
 
+    console.log('Setting up keyboard listener for spacebar...');
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
-        setShakeCount(prev => prev + 1);
+        console.log('Spacebar pressed!');
+        setShakeCount(prev => {
+          const newCount = prev + 1;
+          console.log('Tap count:', newCount);
+          return newCount;
+        });
       }
     };
 
+    // Add both keydown and keyup to ensure we catch the spacebar press
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, isMobile]);
+    
+    return () => {
+      console.log('Cleaning up keyboard listener');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isActive, isMobile, isClient]);
 
   // Handle device motion for mobile
   useEffect(() => {
     if (!isClient || !isActive || !isMobile) return;
 
+    console.log('Setting up motion detection...');
+    
     let lastX = 0, lastY = 0, lastZ = 0;
-    let shakeThreshold = 15;
-
+    const SHAKE_THRESHOLD = 12; // Lowered threshold for better sensitivity
+    const SHAKE_TIMEOUT = 50; // Reduced debounce time to 50ms for faster response
+    let lastUpdate = 0;
+    let shakeTimeout: NodeJS.Timeout;
+    
     const handleMotion = (event: DeviceMotionEvent) => {
       const acc = event.accelerationIncludingGravity;
-      if (!acc) return;
+      if (!acc) {
+        console.log('No accelerometer data available');
+        return;
+      }
 
       const { x = 0, y = 0, z = 0 } = acc;
       
+      // Calculate acceleration vector magnitude
+      const acceleration = Math.sqrt(x * x + y * y + z * z);
+      
+      // Calculate change in acceleration
       const deltaX = Math.abs(x - lastX);
       const deltaY = Math.abs(y - lastY);
       const deltaZ = Math.abs(z - lastZ);
-
-      if (deltaX + deltaY + deltaZ > shakeThreshold) {
-        setShakeCount(prev => prev + 1);
+      
+      const totalDelta = deltaX + deltaY + deltaZ;
+      
+      // More sensitive shake detection with multiple conditions
+      const isShaking = totalDelta > SHAKE_THRESHOLD || 
+                       (Math.abs(acceleration - 9.81) > 2 && totalDelta > 8);
+      
+      if (isShaking) {
+        const now = Date.now();
+        // More responsive shake detection with shorter debounce
+        if (now - lastUpdate > SHAKE_TIMEOUT) {
+          console.log('Shake detected!', { 
+            x, y, z, 
+            delta: { x: deltaX, y: deltaY, z: deltaZ, total: totalDelta },
+            acceleration
+          });
+          
+          // Clear any pending shake count updates
+          if (shakeTimeout) clearTimeout(shakeTimeout);
+          
+          // Update shake count with a small delay to ensure smooth UI updates
+          shakeTimeout = setTimeout(() => {
+            setShakeCount(prev => {
+              const newCount = prev + 1;
+              console.log('Shake count:', newCount);
+              return newCount;
+            });
+          }, 10);
+          
+          lastUpdate = now;
+        }
       }
 
       lastX = x;
@@ -85,9 +137,16 @@ export const ShakeChallenge: React.FC = () => {
       lastZ = z;
     };
 
-    window.addEventListener('devicemotion', handleMotion);
-    return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [isActive, isMobile]);
+    // Add the event listener
+    console.log('Adding motion event listener');
+    window.addEventListener('devicemotion', handleMotion, { passive: true });
+    
+    return () => {
+      console.log('Cleaning up motion detection');
+      window.removeEventListener('devicemotion', handleMotion);
+      if (shakeTimeout) clearTimeout(shakeTimeout);
+    };
+  }, [isActive, isMobile, isClient]);
 
   const handleStart = async () => {
     // Reset states first
@@ -113,49 +172,84 @@ export const ShakeChallenge: React.FC = () => {
     setIsActive(true);
   };
 
-  const handleComplete = useCallback(async () => {
-    if (!isActive || !isClient) return;
+  const handleComplete = useCallback(async (): Promise<void> => {
+    if (!isActive || !isClient || !currentPlayer) {
+      console.log('Challenge not active, not on client, or no current player');
+      setIsActive(false);
+      return;
+    }
+    
+    // Disable further taps
+    setIsActive(false);
+    
+    // Force a state update to get the latest shakeCount
+    const finalShakeCount = await new Promise<number>(resolve => {
+      setShakeCount(prev => {
+        resolve(prev);
+        return prev;
+      });
+    });
     
     // Calculate points based on platform
     const threshold = isMobile ? 300 : 150; // 300 shakes on mobile, 150 taps on desktop
-    const completedSets = Math.floor(shakeCount / threshold);
+    const completedSets = Math.floor(finalShakeCount / threshold);
     const pointsToAdd = completedSets * 5;
     
     console.log('Shake Challenge Complete:', { 
-      shakeCount, 
+      userId: currentPlayer.id,
+      finalShakeCount,
       threshold, 
       completedSets,
       pointsToAdd, 
-      isMobile 
+      isMobile,
+      currentScore: currentPlayer.score
     });
     
     try {
-      if (shakeCount > 0) {
-        if (pointsToAdd > 0) {
-          await updateScore(pointsToAdd);
+      if (pointsToAdd > 0) {
+        console.log('Attempting to add points:', pointsToAdd);
+        try {
+          const newScore = await updateScore(pointsToAdd);
+          console.log('Score update successful, new score:', newScore);
+          
           toast.success(`Time's up! 🎉`, {
-            description: `You ${isMobile ? 'shook' : 'tapped'} ${shakeCount} times!\n+${pointsToAdd} points earned (${completedSets} × 5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
+            description: `You ${isMobile ? 'shook' : 'tapped'} ${finalShakeCount} times!\n+${pointsToAdd} points earned (${completedSets} × 5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
             duration: 8000,
           });
-        } else {
-          toast.info(`Time's up! ⏱️`, {
-            description: `You ${isMobile ? 'shook' : 'tapped'} ${shakeCount} times!\n${isMobile ? 'Shake' : 'Tap'} more to earn points! (5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
-            duration: 8000,
+        } catch (error) {
+          console.error('Error updating score:', error);
+          toast.error('Error updating score. Please try again.', {
+            description: `You ${isMobile ? 'shook' : 'tapped'} ${finalShakeCount} times!`,
+            duration: 10000,
           });
         }
+      } else if (finalShakeCount > 0) {
+        console.log('Not enough shakes/taps for points');
+        toast.info(`Time's up! ⏱️`, {
+          description: `You ${isMobile ? 'shook' : 'tapped'} ${finalShakeCount} times!\n${isMobile ? 'Shake' : 'Tap'} more to earn points! (5 points per ${threshold} ${isMobile ? 'shakes' : 'taps'})`,
+          duration: 8000,
+        });
       } else {
+        console.log('No shakes/taps detected');
         toast.error(`Time's up! 😅`, {
           description: `You didn't ${isMobile ? 'shake' : 'tap'} at all!\nTry again and ${isMobile ? 'shake' : 'tap'} harder next time!`,
           duration: 8000,
         });
       }
     } catch (error) {
-      console.error('Error updating score:', error);
-      toast.error('Error updating score. Please try again.');
+      console.error('Error in handleComplete:', {
+        error,
+        userId: currentPlayer?.id,
+        pointsToAdd,
+        shakeCount: finalShakeCount
+      });
+      
+      toast.error('Error updating score. Please try again.', {
+        description: 'Your points might not have been saved.',
+        duration: 10000,
+      });
     }
-    
-    setIsActive(false);
-  }, [isActive, shakeCount, updateScore, isMobile, isClient]);
+  }, [isActive, isClient, currentPlayer, isMobile, updateScore]);
 
   return (
     <Card className="border-2 border-primary w-full">
@@ -206,3 +300,5 @@ export const ShakeChallenge: React.FC = () => {
     </Card>
   );
 };
+
+export default ShakeChallenge;

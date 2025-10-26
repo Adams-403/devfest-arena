@@ -25,7 +25,7 @@ interface GameContextType {
   login: (username: string, accessCode: string) => Promise<{ success: boolean }>;
   signUp: (username: string, accessCode: string) => Promise<{ success: boolean }>;
   logout: () => Promise<void>;
-  updateScore: (score: number) => Promise<void>;
+  updateScore: (score: number) => Promise<number>;
   leaderboard: Array<{ id: string; username: string; score: number }>;
   refreshLeaderboard: () => Promise<void>;
   isAdmin: boolean;
@@ -434,28 +434,59 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateScore = async (score: number) => {
-    if (!currentPlayer) return;
+  const updateScore = async (pointsToAdd: number) => {
+    if (!currentPlayer) {
+      console.error('Cannot update score: No current player');
+      throw new Error('No current player');
+    }
+    
+    console.log('Updating score:', {
+      userId: currentPlayer.id,
+      currentScore: currentPlayer.score,
+      pointsToAdd,
+      newScore: currentPlayer.score + pointsToAdd
+    });
     
     try {
-      const updatedUser = await authService.updateScore(currentPlayer.id, score);
+      const updatedUser = await authService.updateScore(currentPlayer.id, pointsToAdd);
       
       if (updatedUser) {
-        setCurrentPlayer(prev => prev ? { 
-          ...prev, 
-          score: updatedUser.score,
-          updated_at: updatedUser.updated_at
-        } : null);
+        console.log('Score updated successfully:', {
+          userId: currentPlayer.id,
+          previousScore: currentPlayer.score,
+          newScore: updatedUser.score
+        });
         
+        setCurrentPlayer(prev => {
+          if (!prev) return null;
+          return { 
+            ...prev, 
+            score: updatedUser.score,
+            updated_at: updatedUser.updated_at
+          };
+        });
+        
+        // Force refresh leaderboard
         await fetchLeaderboard();
+        return updatedUser.score;
+      } else {
+        console.error('Failed to update score: No updated user returned');
+        throw new Error('Failed to update score');
       }
     } catch (error) {
-      console.error('Error updating score:', error);
+      console.error('Error in updateScore:', {
+        error,
+        userId: currentPlayer.id,
+        pointsToAdd,
+        currentScore: currentPlayer.score
+      });
+      
       toast({
         title: 'Error',
-        description: 'Failed to update score',
+        description: 'Failed to update score. Please try again.',
         variant: 'destructive',
       });
+      
       throw error;
     }
   };
