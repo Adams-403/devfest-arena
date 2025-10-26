@@ -177,20 +177,33 @@ export const authService = {
     return session;
   },
 
-  async updateScore(userId: string, scoreToAdd: number): Promise<LeaderboardUser | null> {
-    // First get the current score
-    const { data: currentUser } = await supabase
+  async updateScore(userId: string, scoreToAdd: number): Promise<LeaderboardUser> {
+    console.log('authService.updateScore called with:', { userId, scoreToAdd });
+    
+    // First get the current score with error handling
+    const { data: currentUser, error: fetchError } = await supabase
       .from('users')
       .select('score')
       .eq('id', userId)
       .single();
 
-    if (!currentUser) throw new Error('User not found');
+    if (fetchError || !currentUser) {
+      console.error('Error fetching current score:', fetchError?.message || 'User not found');
+      throw new Error(fetchError?.message || 'User not found');
+    }
 
-    const newScore = (currentUser.score || 0) + scoreToAdd;
+    const currentScore = Number(currentUser.score) || 0;
+    const newScore = currentScore + Number(scoreToAdd);
+    
+    console.log('Updating score in database:', {
+      userId,
+      currentScore,
+      scoreToAdd,
+      newScore
+    });
     
     // Update with the new incremented score
-    const { data, error } = await supabase
+    const { data, error: updateError } = await supabase
       .from('users')
       .update({
         score: newScore,
@@ -200,7 +213,18 @@ export const authService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (updateError || !data) {
+      console.error('Error updating score in database:', updateError?.message || 'No data returned');
+      throw new Error(updateError?.message || 'Failed to update score');
+    }
+    
+    console.log('Successfully updated score:', {
+      userId,
+      previousScore: currentScore,
+      newScore: data.score,
+      updatedAt: data.updated_at
+    });
+    
     return data as LeaderboardUser;
   },
 
