@@ -78,8 +78,10 @@ const ShakeChallenge: React.FC = () => {
     console.log('Setting up motion detection...');
     
     let lastX = 0, lastY = 0, lastZ = 0;
-    const SHAKE_THRESHOLD = 15; // Adjust this value based on testing
+    const SHAKE_THRESHOLD = 12; // Lowered threshold for better sensitivity
+    const SHAKE_TIMEOUT = 50; // Reduced debounce time to 50ms for faster response
     let lastUpdate = 0;
+    let shakeTimeout: NodeJS.Timeout;
     
     const handleMotion = (event: DeviceMotionEvent) => {
       const acc = event.accelerationIncludingGravity;
@@ -90,22 +92,42 @@ const ShakeChallenge: React.FC = () => {
 
       const { x = 0, y = 0, z = 0 } = acc;
       
+      // Calculate acceleration vector magnitude
+      const acceleration = Math.sqrt(x * x + y * y + z * z);
+      
       // Calculate change in acceleration
       const deltaX = Math.abs(x - lastX);
       const deltaY = Math.abs(y - lastY);
       const deltaZ = Math.abs(z - lastZ);
       
-      // Only count a shake if the change is significant enough
-      if (deltaX + deltaY + deltaZ > SHAKE_THRESHOLD) {
+      const totalDelta = deltaX + deltaY + deltaZ;
+      
+      // More sensitive shake detection with multiple conditions
+      const isShaking = totalDelta > SHAKE_THRESHOLD || 
+                       (Math.abs(acceleration - 9.81) > 2 && totalDelta > 8);
+      
+      if (isShaking) {
         const now = Date.now();
-        // Limit shake detection to once every 100ms to prevent multiple counts
-        if (now - lastUpdate > 100) {
-          console.log('Shake detected!');
-          setShakeCount(prev => {
-            const newCount = prev + 1;
-            console.log('Shake count:', newCount);
-            return newCount;
+        // More responsive shake detection with shorter debounce
+        if (now - lastUpdate > SHAKE_TIMEOUT) {
+          console.log('Shake detected!', { 
+            x, y, z, 
+            delta: { x: deltaX, y: deltaY, z: deltaZ, total: totalDelta },
+            acceleration
           });
+          
+          // Clear any pending shake count updates
+          if (shakeTimeout) clearTimeout(shakeTimeout);
+          
+          // Update shake count with a small delay to ensure smooth UI updates
+          shakeTimeout = setTimeout(() => {
+            setShakeCount(prev => {
+              const newCount = prev + 1;
+              console.log('Shake count:', newCount);
+              return newCount;
+            });
+          }, 10);
+          
           lastUpdate = now;
         }
       }
@@ -116,11 +138,13 @@ const ShakeChallenge: React.FC = () => {
     };
 
     // Add the event listener
+    console.log('Adding motion event listener');
     window.addEventListener('devicemotion', handleMotion, { passive: true });
     
     return () => {
       console.log('Cleaning up motion detection');
       window.removeEventListener('devicemotion', handleMotion);
+      if (shakeTimeout) clearTimeout(shakeTimeout);
     };
   }, [isActive, isMobile, isClient]);
 
