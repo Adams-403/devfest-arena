@@ -246,69 +246,37 @@ export const PollChallenge = () => {
   };
 
   const handleVote = async (optionIndex: number) => {
-    if (!currentPlayer || showResults || !gameState.currentChallenge?.active || isSubmitting) return;
-    
+    if (!currentPlayer || showResults || isSubmitting) {
+      console.log('Vote prevented:', { currentPlayer, showResults, isSubmitting });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      
-      // Get the current user's vote for this poll
-      const { data: existingVote } = await supabase
-        .from('poll_votes')
-        .select('*')
-        .eq('user_id', currentPlayer.id)
-        .eq('poll_id', currentQuestion)
-        .single();
-      
-      if (existingVote) {
-        // Update existing vote
-        const { error } = await supabase
-          .from('poll_votes')
-          .update({ option_index: optionIndex })
-          .eq('id', existingVote.id);
-          
-        if (error) throw error;
-      } else {
-        // Insert new vote
-        const { error } = await supabase
-          .from('poll_votes')
-          .insert([
-            {
-              user_id: currentPlayer.id,
-              poll_id: currentQuestion,
-              option_index: optionIndex
-            }
-          ])
-          .select();
-          
-        if (error) throw error;
-      }
       
       // Update local state optimistically
       setPolls(prevPolls => {
         const newPolls = [...prevPolls];
         const currentPoll = { ...newPolls[currentQuestion] };
         
-        // Reset previous vote if exists
-        if (currentPoll.userVotes?.includes(currentPlayer.id)) {
+        // Initialize if needed
+        currentPoll.votes = currentPoll.votes || {};
+        currentPoll.userVotes = currentPoll.userVotes || [];
+        
+        // Remove previous vote if exists
+        if (currentPoll.userVotes.includes(currentPlayer.id)) {
           const prevVoteIndex = currentPoll.userVotes.indexOf(currentPlayer.id);
-          if (prevVoteIndex !== -1) {
-            const prevVote = currentPoll.userVotes[prevVoteIndex];
-            if (prevVote !== undefined && currentPoll.votes[prevVote] > 0) {
-              currentPoll.votes = { ...currentPoll.votes };
-              currentPoll.votes[prevVote]--;
-            }
+          if (prevVoteIndex !== -1 && currentPoll.votes[prevVoteIndex] > 0) {
+            currentPoll.votes[prevVoteIndex]--;
           }
         }
         
         // Add new vote
-        currentPoll.votes = {
-          ...currentPoll.votes,
-          [optionIndex]: (currentPoll.votes[optionIndex] || 0) + 1
-        };
+        currentPoll.votes[optionIndex] = (currentPoll.votes[optionIndex] || 0) + 1;
         
-        // Update user votes
+        // Update userVotes
         currentPoll.userVotes = [
-          ...(currentPoll.userVotes?.filter(id => id !== currentPlayer.id) || []),
+          ...currentPoll.userVotes.filter(id => id !== currentPlayer.id),
           currentPlayer.id
         ];
         
@@ -316,9 +284,59 @@ export const PollChallenge = () => {
         return newPolls;
       });
       
+      // Update database
+      const { data: existingVote, error: fetchError } = await supabase
+        .from('poll_votes')
+        .select('id')
+        .eq('user_id', currentPlayer.id)
+        .eq('poll_id', currentQuestion)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      
+      if (existingVote) {
+        const { error: updateError } = await supabase
+          .from('poll_votes')
+          .update({ option_index: optionIndex })
+          .eq('id', existingVote.id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('poll_votes')
+          .insert([{
+            user_id: currentPlayer.id,
+            poll_id: currentQuestion,
+            option_index: optionIndex
+          }]);
+        if (insertError) throw insertError;
+      }
+      
     } catch (error) {
       console.error('Error submitting vote:', error);
       toast.error('Failed to submit vote. Please try again.');
+      
+      // Re-fetch the latest state on error
+      const { data: votes } = await supabase
+        .from('poll_votes')
+        .select('*')
+        .eq('poll_id', currentQuestion);
+        
+      if (votes) {
+        const voteCounts = votes.reduce((acc, vote) => {
+          acc[vote.option_index] = (acc[vote.option_index] || 0) + 1;
+          return acc;
+        }, {} as Record<number, number>);
+        
+        setPolls(prevPolls => {
+          const newPolls = [...prevPolls];
+          newPolls[currentQuestion] = {
+            ...newPolls[currentQuestion],
+            votes: voteCounts,
+            userVotes: votes.map(vote => vote.user_id)
+          };
+          return newPolls;
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -636,24 +654,61 @@ export const PollChallenge = () => {
             
             <div className="grid grid-cols-1 gap-3">
               {currentPoll.options.map((option, index) => {
-                const isSelected = currentPlayer && currentPoll.userVotes?.includes(currentPlayer.id) && 
-                  currentPoll.userVotes?.indexOf(currentPlayer.id) === index;
+                const hasVoted = currentPoll.userVotes?.includes(currentPlayer?.id);
+                const isSelected = hasVoted && currentPoll.userVotes?.indexOf(currentPlayer?.id) === index;
+                const isDisabled = !currentPlayer || showResults || isSubmitting || isTransitioning;
+                const voteCount = currentPoll.votes?.[index] || 0;
                 
                 return (
                   <Button
                     key={index}
-                    onClick={() => handleVote(index)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!isDisabled) {
+                        handleVote(index);
+                      }
+                    }}
                     variant={isSelected ? "default" : "outline"}
                     className={cn(
-                      "h-14 text-lg justify-start transition-all",
-                      isSelected ? "ring-2 ring-offset-2 ring-yellow-400/50" : "hover:bg-secondary/20"
+                      "h-14 text-lg justify-start transition-all group relative overflow-hidden",
+                      isSelected 
+                        ? "ring-2 ring-offset-2 ring-yellow-400/50 bg-primary/90" 
+                        : "hover:bg-secondary/20 active:bg-secondary/30",
+                      isDisabled && !isSelected && "opacity-70 cursor-not-allowed"
                     )}
                     size="lg"
-                    disabled={isTransitioning}
+                    disabled={isDisabled}
+                    aria-disabled={isDisabled}
                   >
-                    <span className="flex-1 text-left">{option}</span>
+                    <span className="flex-1 text-left z-10">{option}</span>
+                    
+                    {/* Vote count badge */}
+                    <span className={cn(
+                      "ml-2 px-2 py-0.5 rounded-full text-xs font-medium z-10",
+                      isSelected 
+                        ? "bg-white/20 text-white" 
+                        : "bg-secondary/50 text-foreground/70"
+                    )}>
+                      {voteCount}
+                    </span>
+                    
                     {isSelected && (
-                      <CheckCircle2 className="ml-2 h-5 w-5 flex-shrink-0" />
+                      <CheckCircle2 className="ml-2 h-5 w-5 flex-shrink-0 z-10" />
+                    )}
+                    
+                    {isSubmitting && !isSelected && (
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-foreground/50 z-10" 
+                           xmlns="http://www.w3.org/2000/svg" 
+                           fill="none" 
+                           viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    
+                    {/* Animated background for selected state */}
+                    {isSelected && (
+                      <span className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></span>
                     )}
                   </Button>
                 );
