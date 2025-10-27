@@ -8,15 +8,26 @@ import { EmojiChallenge } from './challenges/EmojiChallenge';
 import MatchLogoChallenge from './challenges/MatchLogoChallenge';
 import { AdminDashboard } from './AdminDashboard';
 import { Button } from './ui/button';
-import { Share2, LogOut, Crown, User } from 'lucide-react';
+import { Share2, LogOut, Crown, User, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useNavigate } from 'react-router-dom';
+
+// Challenge component map for dynamic rendering
+const challengeComponents = {
+  'shake': ShakeChallenge,
+  'poll': PollChallenge,
+  'lucky-tap': LuckyTapChallenge,
+  'emoji': EmojiChallenge,
+  'match-logos': MatchLogoChallenge,
+};
 
 export const GameScreen = () => {
   const { gameState, currentPlayer, isAdmin, setIsAdmin } = useGame();
@@ -46,17 +57,100 @@ export const GameScreen = () => {
     }
   };
 
+  const navigate = useNavigate();
+  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
+
+  // Get border color based on challenge ID
+  const getBorderColor = (id: string) => {
+    const colors = [
+      'border-red-500',  // Google Red
+      'border-blue-500', // Google Blue
+      'border-green-500', // Google Green
+      'border-yellow-500', // Google Yellow
+    ];
+    const index = id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
+  // Format duration active for challenges with more precision
+  const formatDurationActive = (startTime: string) => {
+    const start = new Date(startTime);
+    const now = new Date();
+    const elapsedMs = now.getTime() - start.getTime();
+    
+    const seconds = Math.floor(elapsedMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+      return `${days} day${days === 1 ? '' : 's'}, ${hours % 24} hour${hours % 24 === 1 ? '' : 's'}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours === 1 ? '' : 's'}, ${minutes % 60} minute${minutes % 60 === 1 ? '' : 's'}`;
+    } else if (minutes > 0) {
+      return `${minutes} minute${minutes === 1 ? '' : 's'}, ${seconds % 60} second${seconds % 60 === 1 ? '' : 's'}`;
+    } else {
+      return `${seconds} second${seconds === 1 ? '' : 's'}`;
+    }
+  };
+
+  // Get the challenge type from the challenge ID
+  const getChallengeType = (challengeId: string) => {
+    const challenge = gameState.challenges.find(c => c.id === challengeId);
+    return challenge?.type || '';
+  };
+
+  // Get the challenge title from the challenge ID
+  const getChallengeTitle = (challengeId: string) => {
+    const challenge = gameState.challenges.find(c => c.id === challengeId);
+    return challenge?.title || 'Unknown Challenge';
+  };
+
   const renderChallenge = () => {
-    if (!gameState.currentChallenge) {
+    // If a challenge is selected, render it
+    if (selectedChallenge) {
+      const challengeType = getChallengeType(selectedChallenge);
+      const ChallengeComponent = challengeComponents[challengeType as keyof typeof challengeComponents];
+      
+      if (!ChallengeComponent) {
+        return (
+          <div className="text-center p-8">
+            <h2 className="text-xl font-bold mb-2">Challenge Not Found</h2>
+            <p className="text-muted-foreground mb-4">The selected challenge could not be loaded.</p>
+            <Button onClick={() => setSelectedChallenge(null)}>Back to Challenges</Button>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => setSelectedChallenge(null)}
+              className="mb-4"
+            >
+              ← Back to all challenges
+            </Button>
+          </div>
+          <ChallengeComponent />
+        </div>
+      );
+    }
+
+    // If no challenge is selected, show the list of active challenges
+    const { activeChallenges } = useGame();
+
+    if (activeChallenges.length === 0) {
       return (
         <div className="text-center p-12 bg-muted/50 rounded-lg">
           <p className="text-xl text-muted-foreground">
             {isAdmin ? (
-              <span className="animate-pulse">Select a challenge to begin</span>
+              <span className="animate-pulse">Start a challenge from the admin panel</span>
             ) : (
               <span className="flex flex-col items-center gap-2">
                 <span className="inline-block h-4 w-4 rounded-full bg-yellow-400 animate-pulse"></span>
-                <span>Waiting for the next challenge...</span>
+                <span>No active challenges at the moment. Check back later!</span>
               </span>
             )}
           </p>
@@ -64,26 +158,61 @@ export const GameScreen = () => {
       );
     }
 
-    switch (gameState.currentChallenge.type) {
-      case 'shake':
-        return <ShakeChallenge />;
-      case 'poll':
-        return <PollChallenge />;
-      case 'lucky-tap':
-        return <LuckyTapChallenge />;
-      case 'emoji':
-        return <EmojiChallenge />;
-      case 'match-logos':
-        return <MatchLogoChallenge />;
-      default:
-        return null;
-    }
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2">Active Challenges</h2>
+          <p className="text-muted-foreground">
+            Choose a challenge to participate in
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {activeChallenges.map((activeChallenge) => {
+            const challenge = gameState.challenges.find(c => c.id === activeChallenge.challenge_id);
+            if (!challenge) return null;
+            
+            return (
+              <Card key={activeChallenge.id} className={`hover:shadow-md transition-shadow border-2 ${getBorderColor(activeChallenge.challenge_id)}`}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {challenge.title}
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                      Active
+                    </span>
+                  </CardTitle>
+                  <CardDescription>{challenge.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-muted-foreground">
+                      Started: {new Date(activeChallenge.start_time).toLocaleString()}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Active for: {formatDurationActive(activeChallenge.start_time)}
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full mt-4"
+                    onClick={() => setSelectedChallenge(challenge.id)}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Play Now
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   // Add state to track the current view mode, defaulting to the value from localStorage or isAdmin
   const [isAdminView, setIsAdminView] = useState(() => {
     // Check localStorage first, then fall back to isAdmin
-    const savedView = typeof window !== 'undefined' ? localStorage.getItem('adminView') : null;
+    if (typeof window === 'undefined') return false;
+    const savedView = localStorage.getItem('adminView');
     return savedView !== null ? savedView === 'true' : isAdmin;
   });
 
@@ -134,11 +263,13 @@ export const GameScreen = () => {
               {renderGameStatus()}
             </div>
             <div className="flex items-center gap-2">
-              <img
-                src={HeaderLogo}
-                alt="DevFest Arena Logo"
-                className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain"
-              />
+              <a href="/" className="cursor-pointer">
+                <img
+                  src={HeaderLogo}
+                  alt="DevFest Arena Logo"
+                  className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain hover:opacity-90 transition-opacity"
+                />
+              </a>
             </div>
             <div className="flex items-center gap-2">
               {currentPlayer && (
