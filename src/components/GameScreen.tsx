@@ -263,11 +263,13 @@ export const GameScreen = () => {
               {renderGameStatus()}
             </div>
             <div className="flex items-center gap-2">
-              <img
-                src={HeaderLogo}
-                alt="DevFest Arena Logo"
-                className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain"
-              />
+              <a href="/" className="cursor-pointer">
+                <img
+                  src={HeaderLogo}
+                  alt="DevFest Arena Logo"
+                  className="w-48 sm:w-48 md:w-56 lg:w-64 xl:w-72 max-h-full h-auto object-contain hover:opacity-90 transition-opacity"
+                />
+              </a>
             </div>
             <div className="flex items-center gap-2">
               {currentPlayer && (
