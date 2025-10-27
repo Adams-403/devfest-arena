@@ -82,6 +82,18 @@ export const AdminDashboard = () => {
     return activeChallenges.find(ac => ac.challenge_id === challengeId);
   };
 
+  // Get border color based on challenge ID
+  const getBorderColor = (id: string) => {
+    const colors = [
+      'border-red-500',  // Google Red
+      'border-blue-500', // Google Blue
+      'border-green-500', // Google Green
+      'border-yellow-500', // Google Yellow
+    ];
+    const index = id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
   // Format duration active for challenges with more precision
   const formatDurationActive = (startTime: string) => {
     const start = new Date(startTime);
@@ -194,7 +206,7 @@ export const AdminDashboard = () => {
                 return (
                   <div 
                     key={challenge.id} 
-                    className={`border rounded-lg p-4 transition-all ${active ? 'border-green-500 bg-transparent' : 'hover:border-muted-foreground/30'}`}
+                    className={`border-2 rounded-lg p-4 transition-all ${active ? getBorderColor(challenge.id) + ' bg-transparent' : 'border-transparent hover:border-muted-foreground/30'}`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>

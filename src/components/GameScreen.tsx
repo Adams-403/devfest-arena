@@ -60,6 +60,18 @@ export const GameScreen = () => {
   const navigate = useNavigate();
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
 
+  // Get border color based on challenge ID
+  const getBorderColor = (id: string) => {
+    const colors = [
+      'border-red-500',  // Google Red
+      'border-blue-500', // Google Blue
+      'border-green-500', // Google Green
+      'border-yellow-500', // Google Yellow
+    ];
+    const index = id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
   // Format duration active for challenges with more precision
   const formatDurationActive = (startTime: string) => {
     const start = new Date(startTime);
@@ -161,7 +173,7 @@ export const GameScreen = () => {
             if (!challenge) return null;
             
             return (
-              <Card key={activeChallenge.id} className="hover:shadow-md transition-shadow">
+              <Card key={activeChallenge.id} className={`hover:shadow-md transition-shadow border-2 ${getBorderColor(activeChallenge.challenge_id)}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     {challenge.title}
