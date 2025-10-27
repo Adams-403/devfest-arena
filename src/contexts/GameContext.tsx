@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Player, Challenge, GameState } from '@/types/game';
 import { authService } from '@/integrations/supabase/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { gameStateService } from '@/integrations/supabase/gameState';
+import { gameStateService, ActiveChallenge } from '@/integrations/supabase/gameState';
 import { useToast } from '../hooks/use-toast';
 
 interface User {
@@ -32,8 +32,11 @@ interface GameContextType {
   setIsAdmin: (value: boolean) => void;
   authError: string | null;
   loading: boolean;
-  startChallenge: (challengeId: string) => void;
-  endChallenge: () => void;
+  activeChallenges: ActiveChallenge[];
+  startChallenge: (challengeId: string) => Promise<boolean>;
+  endChallenge: (challengeId: string) => Promise<boolean>;
+  endAllChallenges: () => Promise<boolean>;
+  isChallengeActive: (challengeId: string) => boolean;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -100,6 +103,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeChallenges, setActiveChallenges] = useState<ActiveChallenge[]>([]);
   const { toast } = useToast();
 
   const fetchAllUsers = async () => {
@@ -137,7 +141,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     let usersSubscription: any = null;
-    let gameStateUnsubscribe: (() => void) | null = null;
+    let activeChallengesUnsubscribe: (() => void) | null = null;
 
     const setupSubscriptions = async () => {
       try {
@@ -169,18 +173,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('Users subscription status:', status);
           });
 
-        // Set up real-time subscription for game state
-        gameStateUnsubscribe = gameStateService.subscribeToGameState((payload) => {
-          console.log('Game state changed:', payload);
-          if (payload.new) {
-            setGameState(prev => ({
-              ...prev,
-              gameStarted: payload.new.is_active,
-              gameStartTime: payload.new.start_time ? new Date(payload.new.start_time).getTime() : undefined,
-              currentChallenge: payload.new.current_challenge_id 
-                ? prev.challenges.find(c => c.id === payload.new.current_challenge_id) || null
-                : null
-            }));
+        // Set up real-time subscription for active challenges
+        activeChallengesUnsubscribe = gameStateService.subscribeToActiveChallenges((challenges) => {
+          if (isMounted) {
+            setActiveChallenges(challenges);
           }
         });
       } catch (error) {
@@ -196,8 +192,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (usersSubscription) {
         supabase.removeChannel(usersSubscription);
       }
-      if (typeof gameStateUnsubscribe === 'function') {
-        gameStateUnsubscribe();
+      if (typeof activeChallengesUnsubscribe === 'function') {
+        activeChallengesUnsubscribe();
       }
     };
   }, []);
@@ -224,14 +220,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch the current game state from the database
   const fetchGameState = async () => {
     try {
-      const state = await gameStateService.getGameState();
+      // Get active challenges instead of a single game state
+      const activeChallenges = await gameStateService.getActiveChallenges();
       
+      // Update the active challenges state
+      setActiveChallenges(activeChallenges);
+      
+      // Update game state to reflect we're using multiple active challenges
       setGameState(prev => ({
         ...prev,
-        gameStarted: state.is_active,
-        gameStartTime: state.start_time ? new Date(state.start_time).getTime() : undefined,
-        currentChallenge: state.current_challenge_id 
-          ? prev.challenges.find(c => c.id === state.current_challenge_id) || null
+        // For backward compatibility, we'll set gameStarted to true if there are any active challenges
+        gameStarted: activeChallenges.length > 0,
+        // We'll keep the currentChallenge as the first active challenge for any legacy components
+        // but new components should use activeChallenges from the context
+        currentChallenge: activeChallenges.length > 0
+          ? prev.challenges.find(c => c.id === activeChallenges[0].challenge_id) || null
           : null
       }));
     } catch (error) {
@@ -392,19 +395,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startChallenge = async (challengeId: string) => {
-    const challenge = gameState.challenges.find(c => c.id === challengeId);
-    if (!challenge) return;
-    
+  const startChallenge = async (challengeId: string): Promise<boolean> => {
     try {
-      await gameStateService.updateGameState({
-        current_challenge_id: challengeId,
-        is_active: true,
-        start_time: new Date(),
-        end_time: null
-      });
-      
-      // The game state will be updated via the real-time subscription
+      const result = await gameStateService.startChallenge(challengeId);
+      if (result) {
+        toast({
+          title: 'Challenge Started',
+          description: 'The challenge is now active!',
+        });
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error starting challenge:', error);
       toast({
@@ -412,18 +413,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Failed to start challenge',
         variant: 'destructive',
       });
+      return false;
     }
   };
 
-  const endChallenge = async () => {
+  const endChallenge = async (challengeId: string): Promise<boolean> => {
     try {
-      await gameStateService.updateGameState({
-        current_challenge_id: null,
-        is_active: false,
-        end_time: new Date()
-      });
-      
-      // The game state will be updated via the real-time subscription
+      const success = await gameStateService.endChallenge(challengeId);
+      if (success) {
+        toast({
+          title: 'Challenge Ended',
+          description: 'The challenge has been ended.',
+        });
+      }
+      return success;
     } catch (error) {
       console.error('Error ending challenge:', error);
       toast({
@@ -431,7 +434,43 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Failed to end challenge',
         variant: 'destructive',
       });
+      return false;
     }
+  };
+
+  const endAllChallenges = async (): Promise<boolean> => {
+    try {
+      const success = await gameStateService.endAllChallenges();
+      if (success) {
+        // Clear the active challenges from state
+        setActiveChallenges([]);
+        
+        // Update game state to reflect no active challenges
+        setGameState(prev => ({
+          ...prev,
+          gameStarted: false,
+          currentChallenge: null
+        }));
+
+        toast({
+          title: 'All Challenges Ended',
+          description: 'All active challenges have been ended.',
+        });
+      }
+      return success;
+    } catch (error) {
+      console.error('Error ending all challenges:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to end all challenges',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const isChallengeActive = (challengeId: string): boolean => {
+    return activeChallenges.some(ac => ac.challenge_id === challengeId && ac.is_active);
   };
 
   const updateScore = async (pointsToAdd: number) => {
@@ -440,14 +479,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('No current player');
     }
     
+    const newScore = currentPlayer.score + pointsToAdd;
     console.log('Updating score:', {
       userId: currentPlayer.id,
       currentScore: currentPlayer.score,
       pointsToAdd,
-      newScore: currentPlayer.score + pointsToAdd
+      newScore
     });
     
     try {
+      // Optimistically update the UI
+      setCurrentPlayer(prev => prev ? { ...prev, score: newScore } : null);
+      
       const updatedUser = await authService.updateScore(currentPlayer.id, pointsToAdd);
       
       if (updatedUser) {
@@ -457,6 +500,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           newScore: updatedUser.score
         });
         
+        // Update current player with server-validated score
         setCurrentPlayer(prev => {
           if (!prev) return null;
           return { 
@@ -466,10 +510,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         });
         
+        // Update the user in the allUsers array
+        setAllUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === currentPlayer.id 
+              ? { 
+                  ...user, 
+                  score: updatedUser.score, 
+                  updated_at: updatedUser.updated_at 
+                } 
+              : user
+          )
+        );
+        
         // Force refresh leaderboard
         await fetchLeaderboard();
         return updatedUser.score;
       } else {
+        // Revert optimistic update if the server update failed
+        setCurrentPlayer(prev => prev ? { ...prev, score: currentPlayer.score } : null);
         console.error('Failed to update score: No updated user returned');
         throw new Error('Failed to update score');
       }
@@ -639,8 +698,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAdmin,
         authError,
         loading,
+        activeChallenges,
         startChallenge,
         endChallenge,
+        endAllChallenges,
+        isChallengeActive,
       }}>
       {children}
     </GameContext.Provider>
