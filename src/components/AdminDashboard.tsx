@@ -194,7 +194,7 @@ export const AdminDashboard = () => {
                 return (
                   <div 
                     key={challenge.id} 
-                    className={`border rounded-lg p-4 transition-all ${active ? 'border-green-500 bg-green-50/50' : 'hover:border-muted-foreground/30'}`}
+                    className={`border rounded-lg p-4 transition-all ${active ? 'border-green-500 bg-transparent' : 'hover:border-muted-foreground/30'}`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
